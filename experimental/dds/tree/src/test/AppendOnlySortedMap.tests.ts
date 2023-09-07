@@ -5,9 +5,7 @@
 
 /* eslint-disable no-bitwise */
 
-import { strict as assert } from 'assert';
 import { expect } from 'chai';
-import { validateAssertionError } from '@fluidframework/test-runtime-utils';
 import { assertNotUndefined, compareFiniteNumbers } from '../Common';
 import { AppendOnlyDoublySortedMap, AppendOnlySortedMap } from '../id-compressor/AppendOnlySortedMap';
 
@@ -16,11 +14,8 @@ function runAppendOnlyMapTests(mapBuilder: () => AppendOnlySortedMap<number, num
 		const map = mapBuilder();
 		map.append(0, 0);
 		const exception = 'Inserted key must be > all others in the map.';
-		assert.throws(
-			() => map.append(-1, 1),
-			(e: Error) => validateAssertionError(e, exception)
-		);
-		map.append(1, 2);
+		expect(() => map.append(-1, 1)).to.throw(exception);
+		expect(() => map.append(1, 2)).to.not.throw();
 	});
 
 	it('can get the min and max keys', () => {
@@ -198,11 +193,8 @@ describe('AppendOnlyDoublySortedMap', () => {
 		const map = mapBuilder();
 		map.append(0, 0);
 		const exception = 'Inserted value must be > all others in the map.';
-		assert.throws(
-			() => map.append(1, -1),
-			(e: Error) => validateAssertionError(e, exception)
-		);
-		map.append(2, 1);
+		expect(() => map.append(1, -1)).to.throw(exception);
+		expect(() => map.append(2, 1)).to.not.throw();
 	});
 
 	it('can get an entry or next lower by value', () => {
@@ -244,9 +236,6 @@ describe('AppendOnlyDoublySortedMap', () => {
 		map.append([0], [0]);
 		map.append([1], [1]);
 		assertNotUndefined(map.get([1]))[0] = -1; // mutate value
-		assert.throws(
-			() => map.assertValid(),
-			(e: Error) => validateAssertionError(e, 'Values in map must be sorted.')
-		);
+		expect(() => map.assertValid()).to.throw('Values in map must be sorted.');
 	});
 });

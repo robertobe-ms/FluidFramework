@@ -1,29 +1,8 @@
 # @fluidframework/synthesize
 
-An Ioc type library for synthesizing a FluidObject based on FluidObject providers.
+An Ioc type library for synthesizing a IFluidObject based on registered IFluidObject providers.
 
-<!-- AUTO-GENERATED-CONTENT:START (README_DEPENDENCY_GUIDELINES_SECTION:includeHeading=TRUE) -->
-
-<!-- prettier-ignore-start -->
-<!-- NOTE: This section is automatically generated using @fluid-tools/markdown-magic. Do not update these generated contents directly. -->
-
-## Using Fluid Framework libraries
-
-When taking a dependency on a Fluid Framework library, we recommend using a `^` (caret) version range, such as `^1.3.4`.
-While Fluid Framework libraries may use different ranges with interdependencies between other Fluid Framework libraries,
-library consumers should always prefer `^`.
-
-Note that when depending on a library version of the form `2.0.0-internal.x.y.z`, called the Fluid internal version scheme,
-you must use a `>= <` dependency range (such as `>=2.0.0-internal.x.y.z <2.0.0-internal.w.0.0` where `w` is `x+1`).
-Standard `^` and `~` ranges will not work as expected.
-See the [@fluid-tools/version-tools](https://github.com/microsoft/FluidFramework/blob/main/build-tools/packages/version-tools/README.md)
-package for more information including tools to convert between version schemes.
-
-<!-- prettier-ignore-end -->
-
-<!-- AUTO-GENERATED-CONTENT:END -->
-
-It allows for the creation of a `DependencyContainer` that can have FluidObjects registered with it
+It allows for the creation of a `DependencyContainer` that can have IFluidObjects registered with it
 based on their interface Symbol. So for example if I wanted to register something as `IFoo` I would
 need to provide and object that implements `IFoo` along side it.
 
@@ -42,7 +21,7 @@ So if I wanted an object with an optional `IFoo` and a required `IBar` I would g
 ## Simple Example
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo & IBar>>();
+const dc = new DependencyContainer();
 dc.register(IFoo, new Foo());
 
 const s = dc.synthesize({IFoo}, {});
@@ -52,20 +31,20 @@ console.log(s.IFoo?.foo;)
 
 # API
 
--   [Providers](##Providers)
-    -   [`InstanceProvider`](###Instance-Provider)
-    -   [`SingletonProvider`](###Singleton-Provider)
-    -   [`ValueProvider`](###Value-Provider)
-    -   [`FactoryProvider`](###Factory-Provider)
--   [Synthesize](##Synthesize)
-    -   [Optional Types](###Optional-Types)
-    -   [Required Types](###Required-Types)
-    -   [Multiple Types](###Multiple-Types)
--   [Parent](##Parent)
+- [Providers](##Providers)
+  - [`InstanceProvider`](###Instance-Provider)
+  - [`SingletonProvider`](###Singleton-Provider)
+  - [`ValueProvider`](###Value-Provider)
+  - [`FactoryProvider`](###Factory-Provider)
+- [Synthesize](##Synthesize)
+  - [Optional Types](###Optional-Types)
+  - [Required Types](###Required-Types)
+  - [Multiple Types](###Multiple-Types)
+- [Parent](##Parent)
 
 ## Fluid object Providers
 
-Fluid object Providers are the the different ways you can return a FluidObject when registering.
+Fluid object Providers are the the different ways you can return a IFluidObject when registering.
 
 There are four types of providers:
 
@@ -75,33 +54,38 @@ There are four types of providers:
 4. [`Async Factory Provider`](###Async-Factory-Provider)
 
 ```typescript
-type FluidObjectProvider<T> =
-	| NonNullable<T>
-	| Promise<NonNullable<T>>
-	| ((dependencyContainer: IFluidDependencySynthesizer) => NonNullable<T>)
-	| ((dependencyContainer: IFluidDependencySynthesizer) => Promise<NonNullable<T>>);
+type FluidObjectProvider<T extends keyof IFluidObject> =
+    IFluidObject[T]
+    | Promise<IFluidObject[T]>
+    | ((dependencyContainer: DependencyContainer) => IFluidObject[T])
+    | ((dependencyContainer: DependencyContainer) => Promise<IFluidObject[T]>);
 ```
 
 ### Value Provider
 
-Provide an FluidObject of a given type.
+Provide an IFluidObject of a given type.
 
 #### Usage
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo>>();
+const dc = new DependencyContainer();
 
-dc.register(IFoo, new Foo());
+// Singleton
+const foo = new Foo();
+dc.register(IFoo, Foo);
+
+// Instance
+dc.register(IFoo, new Foo())
 ```
 
 ### Async Value Provider
 
-Provide a Promise to an FluidObject of a given type.
+Provide a Promise to an IFluidObject of a given type.
 
 #### Usage
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo>>();
+const dc = new DependencyContainer();
 
 const generateFoo: Promise<IFoo> = await() => {
     const foo = new Foo();
@@ -109,21 +93,30 @@ const generateFoo: Promise<IFoo> = await() => {
     return foo;
 }
 
+// Singleton
+const foo = generateFoo();
+dc.register(IFoo, foo);
+
+// Instance
 dc.register(IFoo, generateFoo());
 ```
 
 ### Factory Provider
 
-Provide a function that will resolve an FluidObject of a given type.
+```typescript
+(dependencyContainer: DependencyContainer) => IFluidObject[T]
+```
+
+Provide a function that will resolve an IFluidObject of a given type.
 
 #### Usage
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo & IBar>>();
+const dc = new DependencyContainer();
 const fooFactory = () => new Foo();
 dc.register(IFoo, fooFactory);
 
-// Factories can utilize the DependencyContainer if the FluidObject depends
+// Factories can utilize the DependencyContainer if the IFluidObject depends
 // on other providers
 const barFactory = (dc) => new Bar(dc);
 dc.register(IFoo, barFactory);
@@ -131,12 +124,16 @@ dc.register(IFoo, barFactory);
 
 ### Async Factory Provider
 
-Provide a function that will resolve a Promise to an FluidObject of a given type.
+```typescript
+(dependencyContainer: DependencyContainer) => Promise<IFluidObject[T]>
+```
+
+Provide a function that will resolve a Promise to an IFluidObject of a given type.
 
 #### Usage
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo & IBar>>();
+const dc = new DependencyContainer();
 
 const generateFoo: Promise<IFoo> = await() => {
     const foo = new Foo();
@@ -157,7 +154,7 @@ dc.register(IBar, generateBar);
 
 ## Synthesize
 
-Once you have a `DependencyContainer` with registered providers you can synthesize/generate a new FluidObject
+Once you have a `DependencyContainer` with registered providers you can synthesize/generate a new IFluidObject 
 from it. The object that is returned will have the correct typing of optional and required types.
 
 An Example:
@@ -176,30 +173,30 @@ is a TypeScript `type` that ensures the types being passed match the ones in the
 
 ### Optional Types
 
-Optional types will return a Promise to it's corresponding FluidObject or undefined. Because of this we need to do
+Optional types will return a Promise to it's corresponding IFluidObject  or undefined. Because of this we need to do 
 an if check to validate the object or use the `?` like in the example below.
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo>>();
+const dc = new DependencyContainer();
 
-const s = dc.synthesize<IFoo>({ IFoo }, {});
+const s = dc.synthesize<IFoo>({IFoo}, {});
 const foo = await s.IFoo;
 console.log(foo?.foo);
 ```
 
-_Note: Because of how generics in TypeScript work we need to provide an empty `requiredTypes` object even though we don't
-need to provide the type._
+*Note: Because of how generics in TypeScript work we need to provide an empty `requiredTypes` object even though we don't
+need to provide the type.*
 
 ### Required Types
 
-Required types will return a Promise to it's corresponding FluidObject or it will throw.
+Required types will return a Promise to it's corresponding IFluidObject or it will throw.
 
 You can see below that we don't need to add the `?` to check our requested type.
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo>>();
+const dc = new DependencyContainer();
 
-const scope = dc.synthesize<{}, IFoo>({}, { IFoo });
+const scope = dc.synthesize<{}, IFoo>({}, {IFoo});
 const foo = await s.IFoo;
 console.log(foo.foo);
 ```
@@ -209,9 +206,9 @@ console.log(foo.foo);
 You can declare multiple types for both Optional and Required using the `&` or creating a separate type.
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo & IBar>>();
+const dc = new DependencyContainer();
 
-const scope = dc.synthesize<IFoo & IBar>({ IFoo, IBar }, {});
+const scope = dc.synthesize<IFoo & IBar>({IFoo, IBar}, {});
 const fooP = s.IFoo;
 const barP = s.IBar;
 const [foo, bar] = Promise.all([foo, bar]);
@@ -220,9 +217,9 @@ console.log(bar?.bar);
 ```
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo & IBar>>();
+const dc = new DependencyContainer();
 
-const scope = dc.synthesize<{}, IFoo & IBar>({}, { IFoo, IBar });
+const scope = dc.synthesize<{}, IFoo & IBar>({}, {IFoo, IBar});
 const fooP = s.IFoo;
 const barP = s.IBar;
 const [foo, bar] = Promise.all([foo, bar]);
@@ -231,9 +228,9 @@ console.log(bar.bar);
 ```
 
 ```typescript
-const dc = new DependencyContainer<FluidObject<IFoo & IBar>>();
+const dc = new DependencyContainer();
 
-const scope = dc.synthesize<IFoo, IBar>({ IFoo }, { IBar });
+const scope = dc.synthesize<IFoo, IBar>({IFoo}, {IBar});
 const fooP = s.IFoo;
 const barP = s.IBar;
 const [foo, bar] = Promise.all([foo, bar]);
@@ -246,20 +243,4 @@ console.log(bar.bar);
 The `DependencyContainer` takes one optional parameter which is the `parent`. When resolving providers the `DependencyContainer` will first
 check the current container then look in the parent.
 
-<!-- AUTO-GENERATED-CONTENT:START (README_TRADEMARK_SECTION:includeHeading=TRUE) -->
-
-<!-- prettier-ignore-start -->
-<!-- NOTE: This section is automatically generated using @fluid-tools/markdown-magic. Do not update these generated contents directly. -->
-
-## Trademark
-
-This project may contain Microsoft trademarks or logos for Microsoft projects, products, or services.
-
-Use of these trademarks or logos must follow Microsoft's [Trademark & Brand
-Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-
-<!-- prettier-ignore-end -->
-
-<!-- AUTO-GENERATED-CONTENT:END -->
+The `parent` can also be set after `DependencyContainer` creation.

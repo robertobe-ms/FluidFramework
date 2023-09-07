@@ -2,48 +2,59 @@
  * Copyright (c) Microsoft Corporation and contributors. All rights reserved.
  * Licensed under the MIT License.
  */
+import _ from "lodash";
 
-import { StaticCodeLoader, TinyliciousModelLoader } from "@fluid-example/example-utils";
+import { getDefaultObjectFromContainer } from "@fluidframework/aqueduct";
+import { getTinyliciousContainer } from "@fluid-experimental/get-container";
 
-import { PropertyTreeContainerRuntimeFactory, IPropertyTreeAppModel } from "./containerCode";
+import { PropertyTreeContainerRuntimeFactory as ContainerFactory } from "./containerCode";
+
+// import { renderCheckoutView } from "./checkout_view";
 import { renderApp, renderInspector } from "./view";
+import { IPropertyTree } from "./dataObject";
 
-/**
- * Start the app and render.
- *
- * @remarks We wrap this in an async function so we can await Fluid's async calls.
- */
-async function start() {
-	const tinyliciousModelLoader = new TinyliciousModelLoader<IPropertyTreeAppModel>(
-		new StaticCodeLoader(new PropertyTreeContainerRuntimeFactory()),
-	);
+// In interacting with the service, we need to be explicit about whether we're creating a new document vs. loading
+// an existing one.  We also need to provide the unique ID for the document we are loading from.
 
-	let id: string;
-	let model: IPropertyTreeAppModel;
+// In this app, we'll choose to create a new document when navigating directly to http://localhost:8080.
+// We'll also choose to interpret the URL hash as an existing document's
+// ID to load from, so the URL for a document load will look something like http://localhost:8080/#1596520748752.
+// These policy choices are arbitrary for demo purposes, and can be changed however you'd like.
+async function start(): Promise<void> {
+    const content = document.getElementById("content") as HTMLDivElement;
+    // const paths = await renderCheckoutView(content)
 
-	if (location.hash.length === 0) {
-		// Normally our code loader is expected to match up with the version passed here.
-		// But since we're using a StaticCodeLoader that always loads the same runtime factory regardless,
-		// the version doesn't actually matter.
-		const createResponse = await tinyliciousModelLoader.createDetached("1.0");
-		model = createResponse.model;
-		id = await createResponse.attach();
-	} else {
-		id = location.hash.substring(1);
-		model = await tinyliciousModelLoader.loadExisting(id);
-	}
+    // when the document ID is not provided, create a new one.
+    const shouldCreateNew = location.hash.length === 0;
+    const documentId = !shouldCreateNew ? window.location.hash.substring(1) : "";
 
-	// update the browser URL and the window title with the actual container ID
-	location.hash = id;
-	document.title = id;
+    // The getTinyliciousContainer helper function facilitates loading our container code into a Container and
+    // connecting to a locally-running test service called Tinylicious.  This will look different when moving to a
+    // production service, but ultimately we'll still be getting a reference to a Container object.  The helper
+    // function takes the ID of the document we're creating or loading, the container code to load into it, and a
+    // flag to specify whether we're creating a new document or loading an existing one.
+    const [container, containerId] = await getTinyliciousContainer(documentId, ContainerFactory, shouldCreateNew);
 
-	const contentDiv = document.getElementById("content") as HTMLDivElement;
+    // update the browser URL and the window title with the actual container ID
+    location.hash = containerId;
+    document.title = containerId;
 
-	// Render the actual sample
-	const dataBinder = renderApp(model.propertyTree, contentDiv);
+    /* const options = {
+        paths,
+        clientFiltering: true
+    }; */
 
-	// Render property inspector
-	renderInspector(dataBinder, model.propertyTree);
+    // TODO: options currently not supported
+    const propertyTree: IPropertyTree = await getDefaultObjectFromContainer<IPropertyTree>(
+        container,
+        /* { options } */
+    );
+
+    // Render the actual sample
+    const dataBinder = renderApp(propertyTree, content);
+
+    // Render property inspector
+    renderInspector(dataBinder, propertyTree);
 }
 
 start().catch((error) => console.error(error));

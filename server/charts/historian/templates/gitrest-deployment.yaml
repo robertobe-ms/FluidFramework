@@ -12,8 +12,6 @@ spec:
   selector:
     matchLabels:
       app: {{ template "historian.fullname" . }}
-      component: "{{ .Values.gitrest.name }}"
-      release: {{ .Release.Name }}
   strategy:
     type: Recreate
   template:
@@ -64,3 +62,4 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ .Values.gitrest.persistence.existingClaim | default (include "gitrest.fullname" .) }}
+

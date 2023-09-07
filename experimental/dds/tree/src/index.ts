@@ -10,41 +10,16 @@
  */
 
 /**
- * This file represents the public API. Consumers of this library will not see exported modules unless they are enumerated here.
+ * This file represents the public API. Consumers of this package will not see exported modules unless they are enumerated here.
  * Removing / editing existing exports here will often indicate a breaking change, so please be cognizant of changes made here.
  */
 
 // API Exports
 
-export {
-	Build,
-	BuildNode,
-	BuildTreeNode,
-	Change,
-	ChangeType,
-	Constraint,
-	Detach,
-	HasVariadicTraits,
-	Insert,
-	SetValue,
-	StablePlace,
-	StableRange,
-} from './ChangeTypes';
-export { Checkout, CheckoutEvent, ICheckoutEvents, EditValidationResult } from './Checkout';
-export { isSharedTreeEvent, sharedTreeAssertionErrorType, Result } from './Common';
-export { EagerCheckout } from './EagerCheckout';
-export type { OrderedEditSet, EditHandle } from './EditLog';
-export {
-	setTrait,
-	areRevisionViewsSemanticallyEqual,
-	BadPlaceValidationResult,
-	BadRangeValidationResult,
-	PlaceValidationResult,
-	RangeValidationResult,
-	RangeValidationResultKind,
-} from './EditUtilities';
-export { SharedTreeDiagnosticEvent, SharedTreeEvent } from './EventTypes';
+export { initialTree } from './InitialTree';
+export { TreeNodeHandle } from './TreeNodeHandle';
 export { Delta, Forest, ForestNode, ParentData } from './Forest';
+export { sharedTreeAssertionErrorType, isSharedTreeEvent, Result } from './Common';
 export type {
 	CompressedId,
 	Definition,
@@ -63,16 +38,16 @@ export type {
 	AttributionId,
 } from './Identifiers';
 export { isDetachedSequenceId } from './Identifiers';
-export { initialTree } from './InitialTree';
-export { LazyCheckout } from './LazyCheckout';
+export type { OrderedEditSet, EditHandle } from './EditLog';
 export { LogViewer } from './LogViewer';
-export { NodeIdContext, NodeIdGenerator, NodeIdConverter } from './NodeIdUtilities';
-export {
-	MergeHealthStats,
-	SharedTreeMergeHealthTelemetryHeartbeat,
-	useFailedSequencedEditTelemetry,
-} from './MergeHealth';
-export { comparePayloads } from './PayloadUtilities';
+export { Revision } from './RevisionValueCache';
+export { Checkout, CheckoutEvent, ICheckoutEvents, EditValidationResult } from './Checkout';
+export { LazyCheckout } from './LazyCheckout';
+export { EagerCheckout } from './EagerCheckout';
+export * from './ReconciliationPath';
+export * from './MergeHealth';
+export * from './TreeViewUtilities';
+export { StringInterner } from './StringInterner';
 export {
 	Side,
 	EditStatus,
@@ -115,15 +90,9 @@ export {
 	SetValueInternal_0_0_2,
 	TraitLocationInternal,
 } from './persisted-types';
-export { ReconciliationChange, ReconciliationEdit, ReconciliationPath } from './ReconciliationPath';
-export { Revision } from './RevisionValueCache';
-export { RevisionView, TransactionView } from './RevisionView';
-export { TreeNodeHandle } from './TreeNodeHandle';
-export { getTraitLocationOfRange, placeFromStablePlace, rangeFromStableRange } from './TreeViewUtilities';
 export {
 	SharedTreeArgs,
 	SharedTreeOptions,
-	SharedTreeBaseOptions,
 	SharedTreeOptions_0_0_2,
 	SharedTreeOptions_0_1_1,
 	SharedTreeFactory,
@@ -134,19 +103,18 @@ export {
 	SequencedEditAppliedEventArguments,
 	EditApplicationOutcome,
 	ISharedTreeEvents,
-	StashedLocalOpMetadata,
 } from './SharedTree';
-export { StringInterner } from './StringInterner';
-
-/**
- * TODO:#61413: Publish test utilities from a separate test package
- */
+export * from './EventTypes';
 export {
-	getSerializedUploadedEditChunkContents as getUploadedEditChunkContents,
-	getSerializedUploadedEditChunkContents,
-} from './SummaryTestUtilities';
-
-export { Transaction, TransactionEvent, TransactionEvents } from './Transaction';
+	setTrait,
+	areRevisionViewsSemanticallyEqual,
+	BadPlaceValidationResult,
+	BadRangeValidationResult,
+	PlaceValidationResult,
+	RangeValidationResult,
+	RangeValidationResultKind,
+} from './EditUtilities';
+export { comparePayloads } from './PayloadUtilities';
 export {
 	TransactionInternal,
 	GenericTransaction,
@@ -171,3 +139,17 @@ export {
 	TreeViewRange,
 	TraitLocation,
 } from './TreeView';
+export { RevisionView, TransactionView } from './RevisionView';
+export { NodeIdContext, NodeIdGenerator, NodeIdConverter } from './NodeIdUtilities';
+export { Transaction, TransactionEvent, TransactionEvents } from './Transaction';
+
+/**
+ * TODO:#61413: Publish test utilities from a separate test package
+ */
+export {
+	/** @deprecated Use `getSerializedUploadedEditChunkContents` instead. */
+	getSerializedUploadedEditChunkContents as getUploadedEditChunkContents,
+	getSerializedUploadedEditChunkContents,
+} from './SummaryTestUtilities';
+
+export * from './ChangeTypes';

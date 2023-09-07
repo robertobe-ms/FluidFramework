@@ -3,18 +3,7 @@
  * Licensed under the MIT License.
  */
 
-export { Ink } from "./ink";
-export { InkCanvas } from "./inkCanvas";
-export { InkFactory } from "./inkFactory";
-export {
-	IClearOperation,
-	IColor,
-	ICreateStrokeOperation,
-	IInk,
-	IInkEvents,
-	IInkOperation,
-	IInkPoint,
-	IInkStroke,
-	IPen,
-	IStylusOperation,
-} from "./interfaces";
+export * from "./inkFactory";
+export * from "./interfaces";
+export * from "./ink";
+export * from "./inkCanvas";

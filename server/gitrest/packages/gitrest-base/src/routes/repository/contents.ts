@@ -6,47 +6,20 @@
 import { handleResponse } from "@fluidframework/server-services-shared";
 import { Router } from "express";
 import nconf from "nconf";
-import {
-	checkSoftDeleted,
-	getFilesystemManagerFactory,
-	getRepoManagerParamsFromRequest,
-	IFileSystemManagerFactories,
-	IRepositoryManagerFactory,
-	logAndThrowApiError,
-} from "../../utils";
+import { getRepoManagerParamsFromRequest, IRepositoryManagerFactory, logAndThrowApiError } from "../../utils";
 
-export function create(
-	store: nconf.Provider,
-	fileSystemManagerFactories: IFileSystemManagerFactories,
-	repoManagerFactory: IRepositoryManagerFactory,
-): Router {
-	const router: Router = Router();
-	const repoPerDocEnabled: boolean = store.get("git:repoPerDocEnabled") ?? false;
+export function create(store: nconf.Provider, repoManagerFactory: IRepositoryManagerFactory): Router {
+    const router: Router = Router();
 
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	router.get("/repos/:owner/:repo/contents/*", async (request, response, next) => {
-		const repoManagerParams = getRepoManagerParamsFromRequest(request);
-		const resultP = repoManagerFactory
-			.open(repoManagerParams)
-			.then(async (repoManager) => {
-				const fileSystemManagerFactory = getFilesystemManagerFactory(
-					fileSystemManagerFactories,
-					repoManagerParams.isEphemeralContainer,
-				);
-				const fsManager = fileSystemManagerFactory.create(
-					repoManagerParams.fileSystemManagerParams,
-				);
-				await checkSoftDeleted(
-					fsManager,
-					repoManager.path,
-					repoManagerParams,
-					repoPerDocEnabled,
-				);
-				return repoManager.getContent(request.query.ref as string, request.params[0]);
-			})
-			.catch((error) => logAndThrowApiError(error, request, repoManagerParams));
-		handleResponse(resultP, response);
-	});
+    router.get("/repos/:owner/:repo/contents/*", async (request, response, next) => {
+        const repoManagerParams = getRepoManagerParamsFromRequest(request);
+        const resultP = repoManagerFactory.open(repoManagerParams)
+            .then(async (repoManager) => repoManager.getContent(
+                request.query.ref as string,
+                request.params[0],
+            )).catch((error) => logAndThrowApiError(error, request, repoManagerParams));
+            handleResponse(resultP, response);
+    });
 
-	return router;
+    return router;
 }

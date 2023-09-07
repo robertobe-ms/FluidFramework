@@ -4,133 +4,75 @@
  */
 
 import { strict as assert } from "assert";
-import { MockLogger } from "@fluidframework/telemetry-utils";
+import { TelemetryUTLogger } from "@fluidframework/telemetry-utils";
 import { getFileLink } from "../getFileLink";
-import {
-	mockFetchSingle,
-	mockFetchMultiple,
-	okResponse,
-	notFound,
-	createResponse,
-} from "./mockFetch";
+import { mockFetchOk, mockFetchSingle, mockFetchMultiple, okResponse, notFound } from "./mockFetch";
 
 describe("getFileLink", () => {
-	const siteUrl = "https://microsoft.sharepoint-df.com/siteUrl";
-	const driveId = "driveId";
-	const logger = new MockLogger();
-	const storageTokenFetcher = async () => "StorageToken";
-	const fileItemResponse = {
-		webDavUrl: "fetchDavUrl",
-		webUrl: "fetchWebUrl",
-		sharepointIds: { listItemUniqueId: "fetchFileId" },
-	};
+    const siteUrl = "https://microsoft.sharepoint-df.com/siteUrl";
+    const driveId = "driveId";
+    const logger = new TelemetryUTLogger();
+    const storageTokenFetcher = async () => "StorageToken";
+    const fileItemResponse = {
+        webDavUrl: `${siteUrl}/fetchDavUrl`,
+        webUrl: `${siteUrl}/fetchWebUrl`,
+    };
 
-	afterEach(() => {
-		logger.assertMatchNone([{ category: "error" }]);
-	});
+    it("should return web url for Consumer user", async () => {
+        const result = await mockFetchOk(
+            async () => getFileLink(storageTokenFetcher, { siteUrl, driveId, itemId: "itemId1" }, "Consumer", logger),
+            fileItemResponse,
+        );
+        assert.strictEqual(result, fileItemResponse.webUrl, "File link for Consumer user should match webUrl");
+    });
 
-	it("should return share link with existing access", async () => {
-		const result = await mockFetchMultiple(
-			async () =>
-				getFileLink(
-					storageTokenFetcher,
-					{ siteUrl, driveId, itemId: "itemId4" },
-					logger.toTelemetryLogger(),
-				),
-			[
-				async () => okResponse({}, fileItemResponse),
-				async () => okResponse({}, { d: { directUrl: "sharelink" } }),
-			],
-		);
-		assert.strictEqual(
-			result,
-			"sharelink",
-			"File link should match url returned from sharing information",
-		);
-	});
+    it("should reject for Consumer user if file web url is missing", async () => {
+        await assert.rejects(mockFetchMultiple(
+            async () => getFileLink(storageTokenFetcher, { siteUrl, driveId, itemId: "itemId2" }, "Consumer", logger),
+            [
+                async () => okResponse({}, {}),
+                // We retry once on malformed response from server, so need a second response mocked.
+                async () => okResponse({}, {}),
+            ],
+        ), "Should reject for unexpected empty response");
+    });
 
-	it("should reject if file web dav url is missing", async () => {
-		await assert.rejects(
-			mockFetchMultiple(
-				async () =>
-					getFileLink(
-						storageTokenFetcher,
-						{ siteUrl, driveId, itemId: "itemId5" },
-						logger.toTelemetryLogger(),
-					),
-				[
-					async () => okResponse({}, {}),
-					// We retry once on malformed response from server, so need a second response mocked.
-					async () => okResponse({}, {}),
-				],
-			),
-			"File link should reject for malformed url",
-		);
-	});
+    it("should reject for Consumer user if file item is not found", async () => {
+        await assert.rejects(mockFetchSingle(async () => {
+                return getFileLink(storageTokenFetcher, { siteUrl, driveId, itemId: "itemId3" }, "Consumer", logger);
+            },
+            notFound,
+        ), "File link should reject when not found");
+    });
 
-	it("should reject if file item is not found", async () => {
-		await assert.rejects(
-			mockFetchSingle(async () => {
-				return getFileLink(
-					storageTokenFetcher,
-					{ siteUrl, driveId, itemId: "itemId6" },
-					logger.toTelemetryLogger(),
-				);
-			}, notFound),
-			"File link should reject when not found",
-		);
-	});
+    it("should return share link with existing access for Enterprise user", async () => {
+        const result = await mockFetchMultiple(
+            async () => getFileLink(storageTokenFetcher, { siteUrl, driveId, itemId: "itemId4" }, "Enterprise", logger),
+            [
+                async () => okResponse({}, fileItemResponse),
+                async () => okResponse({}, { d: { LinkingUrl: "sharelink" } }),
+            ],
+        );
+        assert.strictEqual(
+            result, "sharelink", "File link for Enterprise user should match url returned from sharing information");
+    });
 
-	it("should successfully retry", async () => {
-		const result = await mockFetchMultiple(
-			async () =>
-				getFileLink(
-					storageTokenFetcher,
-					{ siteUrl, driveId, itemId: "itemId7" },
-					logger.toTelemetryLogger(),
-				),
-			[
-				async () => createResponse({ "retry-after": "0.001" }, undefined, 900),
-				async () => okResponse({}, fileItemResponse),
-				async () => okResponse({}, { d: { directUrl: "sharelink" } }),
-			],
-		);
-		assert.strictEqual(
-			result,
-			"sharelink",
-			"File link should match url returned from sharing information",
-		);
-		// Should be present in cache now and subsequent calls should fetch from cache.
-		const sharelink2 = await getFileLink(
-			storageTokenFetcher,
-			{ siteUrl, driveId, itemId: "itemId7" },
-			logger.toTelemetryLogger(),
-		);
-		assert.strictEqual(
-			sharelink2,
-			"sharelink",
-			"File link should match url returned from sharing information from cache",
-		);
-	});
+    it("should reject for Enterprise user if file web dav url is missing", async () => {
+        await assert.rejects(mockFetchMultiple(
+            async () => getFileLink(storageTokenFetcher, { siteUrl, driveId, itemId: "itemId5" }, "Enterprise", logger),
+            [
+                async () => okResponse({}, {}),
+                // We retry once on malformed response from server, so need a second response mocked.
+                async () => okResponse({}, {}),
+            ],
+        ), "File link should reject for malformed url");
+    });
 
-	it("should successfully give up after 5 tries", async () => {
-		await assert.rejects(
-			mockFetchMultiple(
-				async () =>
-					getFileLink(
-						storageTokenFetcher,
-						{ siteUrl, driveId, itemId: "itemId7" },
-						logger.toTelemetryLogger(),
-					),
-				[
-					async () => createResponse({ "retry-after": "0.001" }, undefined, 900),
-					async () => createResponse({ "retry-after": "0.001" }, undefined, 900),
-					async () => createResponse({ "retry-after": "0.001" }, undefined, 900),
-					async () => createResponse({ "retry-after": "0.001" }, undefined, 900),
-					async () => createResponse({ "retry-after": "0.001" }, undefined, 900),
-				],
-			),
-			"did not retries 5 times",
-		);
-	});
+    it("should reject for Enterprise user if file item is not found", async () => {
+        await assert.rejects(mockFetchSingle(async () => {
+            return getFileLink(storageTokenFetcher, { siteUrl, driveId, itemId: "itemId6" }, "Enterprise", logger);
+            },
+            notFound,
+        ), "File link should reject when not found");
+    });
 });

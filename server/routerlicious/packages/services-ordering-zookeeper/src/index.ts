@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { ZookeeperClient } from "./zookeeperClient";
+export * from "./zookeeperClient";

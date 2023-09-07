@@ -3,6 +3,6 @@
  * Licensed under the MIT License.
  */
 
-export { RiddlerRunner } from "./runner";
-export { RiddlerResources, RiddlerResourcesFactory, RiddlerRunnerFactory } from "./runnerFactory";
-export { ITenantDocument, TenantManager } from "./tenantManager";
+export * from "./runnerFactory";
+export * from "./runner";
+export * from "./tenantManager";

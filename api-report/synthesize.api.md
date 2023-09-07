@@ -51,6 +51,7 @@ export interface IProvideFluidDependencySynthesizer {
     IFluidDependencySynthesizer: IFluidDependencySynthesizer;
 }
 
+
 // (No @packageDocumentation comment for this package)
 
 ```

@@ -3,8 +3,8 @@
  * Licensed under the MIT License.
  */
 
-import { IErrorEvent } from '@fluidframework/core-interfaces';
-import { TypedEventEmitter } from '@fluid-internal/client-utils';
+import { IErrorEvent } from '@fluidframework/common-definitions';
+import { TypedEventEmitter } from '@fluidframework/common-utils';
 import { ChangeInternal, Edit, EditStatus } from './persisted-types';
 import { newEditId } from './EditUtilities';
 import { TreeView } from './TreeView';
@@ -12,7 +12,6 @@ import { Change } from './ChangeTypes';
 import { SharedTree } from './SharedTree';
 import { GenericTransaction, TransactionInternal } from './TransactionInternal';
 import { CachingLogViewer } from './LogViewer';
-import { RestOrArray, unwrapRestOrArray } from './Common';
 
 /**
  * An event emitted by a `Transaction` to indicate a state change. See {@link TransactionEvents} for event argument information.
@@ -85,11 +84,11 @@ export class Transaction extends TypedEventEmitter<TransactionEvents> {
 	 * @param changes - the changes to apply
 	 * @returns either the `EditStatus` of the given changes or the `EditStatus` of the last change before the transaction was closed
 	 */
-	public apply(...changes: readonly Change[]): EditStatus;
-	public apply(changes: readonly Change[]): EditStatus;
-	public apply(...changesOrArray: RestOrArray<Change>): EditStatus {
+	public apply(...changes: Change[]): EditStatus;
+	public apply(changes: Change[]): EditStatus;
+	public apply(headOrChanges: Change | Change[], ...tail: Change[]): EditStatus {
 		if (this.isOpen) {
-			const changes = unwrapRestOrArray(changesOrArray);
+			const changes = Array.isArray(headOrChanges) ? headOrChanges : [headOrChanges, ...tail];
 			if (changes.length > 0) {
 				const previousView = this.currentView;
 				this.transaction.applyChanges(changes.map((c) => this.tree.internalizeChange(c)));

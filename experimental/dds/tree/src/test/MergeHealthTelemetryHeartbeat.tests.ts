@@ -4,7 +4,7 @@
  */
 
 import { expect } from 'chai';
-import { ITelemetryBaseEvent } from '@fluidframework/core-interfaces';
+import { ITelemetryBaseEvent } from '@fluidframework/common-definitions';
 import { MockContainerRuntimeFactory } from '@fluidframework/test-runtime-utils';
 import { SharedTreeMergeHealthTelemetryHeartbeat } from '../MergeHealth';
 import { SequencedEditAppliedEventArguments, SharedTree } from '../SharedTree';
@@ -19,7 +19,7 @@ async function setupHeartbeat() {
 	const events: ITelemetryBaseEvent[] = [];
 	const { tree, containerRuntimeFactory } = setUpTestSharedTree({
 		localMode: false,
-		logger: { send: (event) => !event.eventName.includes('IdCompressor') && events.push(event) },
+		logger: { send: (event) => events.push(event) },
 		allowInvalid: true,
 	});
 	const testTree = setUpTestTree(tree);
@@ -31,7 +31,7 @@ async function setupHeartbeat() {
 	});
 	const heartbeat = new SharedTreeMergeHealthTelemetryHeartbeat();
 	containerRuntimeFactory.processAllMessages();
-	tree.logViewer.getRevisionViewInMemory(Number.POSITIVE_INFINITY);
+	await tree.logViewer.getRevisionView(Number.POSITIVE_INFINITY);
 	heartbeat.attachTree(tree);
 	return {
 		tree,
@@ -43,9 +43,9 @@ async function setupHeartbeat() {
 	};
 }
 
-function flush(tree: SharedTree, containerRuntimeFactory: MockContainerRuntimeFactory): RevisionView {
+async function flush(tree: SharedTree, containerRuntimeFactory: MockContainerRuntimeFactory): Promise<RevisionView> {
 	containerRuntimeFactory.processAllMessages();
-	return tree.logViewer.getRevisionViewInMemory(Number.POSITIVE_INFINITY);
+	return tree.logViewer.getRevisionView(Number.POSITIVE_INFINITY);
 }
 
 function itAggregates(
@@ -68,7 +68,7 @@ function itAggregates(
 		for (const edit of params.edits) {
 			tree.applyEdit(...edit);
 		}
-		flush(tree, containerRuntimeFactory);
+		await flush(tree, containerRuntimeFactory);
 		heartbeat.flushHeartbeat();
 		expect(events.length).greaterThan(0);
 		params.action(events[events.length - 1]);
@@ -116,7 +116,7 @@ describe('SharedTreeMergeHealthTelemetryHeartbeat', () => {
 	it('Does not automatically send data synchronously', async () => {
 		const { tree, testTree, containerRuntimeFactory, events, heartbeat } = await setupHeartbeat();
 		tree.applyEdit(...Change.insertTree([testTree.buildLeaf()], StablePlace.after(testTree.left)));
-		flush(tree, containerRuntimeFactory);
+		await flush(tree, containerRuntimeFactory);
 		// Expect some data to have made it to the heartbeat
 		expect(heartbeat.getStats(tree).editCount).equals(1);
 		// Expect no data was sent to the logger
@@ -126,7 +126,7 @@ describe('SharedTreeMergeHealthTelemetryHeartbeat', () => {
 	it('Can be flushed synchronously', async () => {
 		const { tree, testTree, containerRuntimeFactory, events, heartbeat } = await setupHeartbeat();
 		tree.applyEdit(...Change.insertTree([testTree.buildLeaf()], StablePlace.after(testTree.left)));
-		flush(tree, containerRuntimeFactory);
+		await flush(tree, containerRuntimeFactory);
 		heartbeat.flushHeartbeat();
 		expect(events.length).equals(1);
 		expect(events[0]).contains({
@@ -140,7 +140,7 @@ describe('SharedTreeMergeHealthTelemetryHeartbeat', () => {
 		concurrentTree.applyEdit(
 			...Change.insertTree([buildLeaf()], StablePlace.after(testTree.left.translateId(concurrentTree)))
 		);
-		flush(tree, containerRuntimeFactory);
+		await flush(tree, containerRuntimeFactory);
 		heartbeat.flushHeartbeat();
 		expect(events.length).equals(0);
 	});

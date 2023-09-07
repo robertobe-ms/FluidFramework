@@ -3,48 +3,21 @@
  * Licensed under the MIT License.
  */
 
-import { ModelContainerRuntimeFactory } from "@fluid-example/example-utils";
-import { IContainer } from "@fluidframework/container-definitions";
-import { IContainerRuntime } from "@fluidframework/container-runtime-definitions";
-import { requestFluidObject } from "@fluidframework/runtime-utils";
+import { ContainerRuntimeFactoryWithDefaultDataStore } from "@fluidframework/aqueduct";
+import { CollaborativeText } from "./fluid-object/";
 
-import { CollaborativeText } from "./fluid-object";
+/**
+ * This does setup for the Fluid Container.
+ *
+ * There are two important things here:
+ * 1. Default FluidObject name
+ * 2. Map of string to factory for all FluidObjects
+ *
+ * In this example, we are only registering a single FluidObject, but more complex examples will register multiple
+ * FluidObjects.
+ */
 
-export interface ICollaborativeTextAppModel {
-	readonly collaborativeText: CollaborativeText;
-}
-
-class CollaborativeTextAppModel implements ICollaborativeTextAppModel {
-	public constructor(public readonly collaborativeText: CollaborativeText) {}
-}
-
-const collaborativeTextId = "collaborative-text";
-
-export class CollaborativeTextContainerRuntimeFactory extends ModelContainerRuntimeFactory<ICollaborativeTextAppModel> {
-	constructor() {
-		super(
-			new Map([CollaborativeText.getFactory().registryEntry]), // registryEntries
-		);
-	}
-
-	/**
-	 * {@inheritDoc ModelContainerRuntimeFactory.containerInitializingFirstTime}
-	 */
-	protected async containerInitializingFirstTime(runtime: IContainerRuntime) {
-		const collaborativeText = await runtime.createDataStore(
-			CollaborativeText.getFactory().type,
-		);
-		await collaborativeText.trySetAlias(collaborativeTextId);
-	}
-
-	/**
-	 * {@inheritDoc ModelContainerRuntimeFactory.createModel}
-	 */
-	protected async createModel(runtime: IContainerRuntime, container: IContainer) {
-		const collaborativeText = await requestFluidObject<CollaborativeText>(
-			await runtime.getRootDataStore(collaborativeTextId),
-			"",
-		);
-		return new CollaborativeTextAppModel(collaborativeText);
-	}
-}
+export const CollaborativeTextContainer = new ContainerRuntimeFactoryWithDefaultDataStore(
+    CollaborativeText.getFactory(),
+    [[CollaborativeText.Name, Promise.resolve(CollaborativeText.getFactory())]],
+);

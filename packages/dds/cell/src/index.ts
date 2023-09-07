@@ -3,16 +3,5 @@
  * Licensed under the MIT License.
  */
 
-/**
- * The `SharedCell` Distributed Data Structure (DDS) stores a single, shared value that can be edited or deleted.
- *
- * @packageDocumentation
- */
-
-export { SharedCell } from "./cell";
-export {
-	ISharedCell,
-	ISharedCellEvents,
-	ICellOptions,
-	ICellAttributionOptions,
-} from "./interfaces";
+export * from "./cell";
+export * from "./interfaces";

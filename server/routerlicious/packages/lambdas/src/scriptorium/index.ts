@@ -3,5 +3,5 @@
  * Licensed under the MIT License.
  */
 
-export { ScriptoriumLambda } from "./lambda";
-export { ScriptoriumLambdaFactory } from "./lambdaFactory";
+export * from "./lambda";
+export * from "./lambdaFactory";

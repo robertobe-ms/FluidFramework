@@ -1,5 +1,6 @@
 {
-	"version": "0.0.1",
-	"npmClient": "pnpm",
-	"useWorkspaces": true
+    "packages": [
+        "packages/**"
+    ],
+    "version": "0.0.1"
 }

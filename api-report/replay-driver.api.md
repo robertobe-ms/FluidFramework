@@ -7,6 +7,8 @@
 import * as api from '@fluidframework/protocol-definitions';
 import * as api_2 from '@fluidframework/driver-definitions';
 import { IClient } from '@fluidframework/protocol-definitions';
+import { IDocumentDeltaConnection } from '@fluidframework/driver-definitions';
+import { IDocumentDeltaStorageService } from '@fluidframework/driver-definitions';
 import { IDocumentService } from '@fluidframework/driver-definitions';
 import { IDocumentServiceFactory } from '@fluidframework/driver-definitions';
 import { IDocumentStorageService } from '@fluidframework/driver-definitions';
@@ -14,8 +16,8 @@ import { IResolvedUrl } from '@fluidframework/driver-definitions';
 import { ISnapshotTree } from '@fluidframework/protocol-definitions';
 import { ISummaryContext } from '@fluidframework/driver-definitions';
 import { ISummaryTree } from '@fluidframework/protocol-definitions';
-import { ITelemetryBaseLogger } from '@fluidframework/core-interfaces';
-import { ITelemetryLoggerExt } from '@fluidframework/telemetry-utils';
+import { ITelemetryBaseLogger } from '@fluidframework/common-definitions';
+import { ITelemetryLogger } from '@fluidframework/common-definitions';
 import { ITree } from '@fluidframework/protocol-definitions';
 import { IVersion } from '@fluidframework/protocol-definitions';
 
@@ -82,6 +84,8 @@ export abstract class ReadDocumentStorageServiceBase implements IDocumentStorage
     get repositoryUrl(): string;
     // (undocumented)
     uploadSummaryWithContext(summary: api.ISummaryTree, context: ISummaryContext): Promise<string>;
+    // (undocumented)
+    write(tree: api.ITree, parents: string[], message: string, ref: string): Promise<api.IVersion>;
 }
 
 // @public
@@ -115,6 +119,8 @@ export class ReplayDocumentServiceFactory implements IDocumentServiceFactory {
     // (undocumented)
     createContainer(createNewSummary: ISummaryTree, resolvedUrl: IResolvedUrl, logger?: ITelemetryBaseLogger, clientIsSummarizer?: boolean): Promise<IDocumentService>;
     createDocumentService(resolvedUrl: IResolvedUrl, logger?: ITelemetryBaseLogger, clientIsSummarizer?: boolean): Promise<IDocumentService>;
+    // (undocumented)
+    readonly protocolName: any;
 }
 
 // @public (undocumented)
@@ -135,15 +141,33 @@ export class SnapshotStorage extends ReadDocumentStorageServiceBase {
 }
 
 // @public (undocumented)
+export class StaticStorageDocumentService implements IDocumentService {
+    constructor(storage: IDocumentStorageService);
+    // (undocumented)
+    connectToDeltaStorage(): Promise<IDocumentDeltaStorageService>;
+    // (undocumented)
+    connectToDeltaStream(client: IClient): Promise<IDocumentDeltaConnection>;
+    // (undocumented)
+    connectToStorage(): Promise<IDocumentStorageService>;
+    // (undocumented)
+    dispose(): void;
+    // (undocumented)
+    get resolvedUrl(): IResolvedUrl;
+    }
+
+// @public (undocumented)
 export class StaticStorageDocumentServiceFactory implements IDocumentServiceFactory {
     constructor(storage: IDocumentStorageService);
     // (undocumented)
-    createContainer(createNewSummary: ISummaryTree, resolvedUrl: IResolvedUrl, logger: ITelemetryLoggerExt, clientIsSummarizer?: boolean): Promise<IDocumentService>;
+    createContainer(createNewSummary: ISummaryTree, resolvedUrl: IResolvedUrl, logger: ITelemetryLogger, clientIsSummarizer?: boolean): Promise<IDocumentService>;
     // (undocumented)
-    createDocumentService(fileURL: IResolvedUrl, logger?: ITelemetryLoggerExt, clientIsSummarizer?: boolean): Promise<IDocumentService>;
+    createDocumentService(fileURL: IResolvedUrl, logger?: ITelemetryLogger, clientIsSummarizer?: boolean): Promise<IDocumentService>;
+    // (undocumented)
+    readonly protocolName = "fluid-static-storage:";
     // (undocumented)
     protected readonly storage: IDocumentStorageService;
 }
+
 
 // (No @packageDocumentation comment for this package)
 

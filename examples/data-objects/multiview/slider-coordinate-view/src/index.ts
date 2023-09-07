@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { SliderCoordinateView } from "./view";
+export * from "./view";

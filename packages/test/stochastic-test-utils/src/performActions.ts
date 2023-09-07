@@ -3,18 +3,9 @@
  * Licensed under the MIT License.
  */
 
-import { promises as fs, writeFileSync, mkdirSync } from "fs";
-import path from "path";
-import {
-	AsyncGenerator,
-	AsyncReducer,
-	BaseFuzzTestState,
-	done,
-	Generator,
-	Reducer,
-	SaveInfo,
-} from "./types";
-import { combineReducers, combineReducersAsync } from "./combineReducers";
+import { promises as fs, writeFileSync } from "fs";
+import { assert } from "@fluidframework/common-utils";
+import { AsyncGenerator, AsyncReducer, BaseFuzzTestState, done, Generator, Reducer, SaveInfo } from "./types";
 
 /**
  * Performs random actions on a set of clients.
@@ -33,13 +24,13 @@ import { combineReducers, combineReducersAsync } from "./combineReducers";
  * Files can also be saved on failure.
  */
 export async function performFuzzActionsAsync<
-	TOperation extends { type: string | number },
-	TState extends BaseFuzzTestState,
+    TOperation extends { type: string | number; },
+    TState extends BaseFuzzTestState,
 >(
-	generator: AsyncGenerator<TOperation, TState>,
-	reducer: AsyncReducer<TOperation, TState>,
-	initialState: TState,
-	saveInfo?: SaveInfo,
+    generator: AsyncGenerator<TOperation, TState>,
+    reducer: AsyncReducer<TOperation, TState>,
+    initialState: TState,
+    saveInfo?: SaveInfo
 ): Promise<TState>;
 /**
  * Performs random actions on a set of clients.
@@ -70,70 +61,55 @@ export async function performFuzzActionsAsync<
  * Files can also be saved on failure.
  */
 export async function performFuzzActionsAsync<
-	TOperation extends { type: string | number },
-	TState extends BaseFuzzTestState,
+    TOperation extends { type: string | number; },
+    TState extends BaseFuzzTestState,
 >(
-	generator: AsyncGenerator<TOperation, TState>,
-	reducerMap: {
-		[K in TOperation["type"]]: AsyncReducer<Extract<TOperation, { type: K }>, TState>;
-	},
-	initialState: TState,
-	saveInfo?: SaveInfo,
+    generator: AsyncGenerator<TOperation, TState>,
+    reducerMap: { [K in TOperation["type"]]: AsyncReducer<Extract<TOperation, { type: K; }>, TState> },
+    initialState: TState,
+    saveInfo?: SaveInfo
 ): Promise<TState>;
 export async function performFuzzActionsAsync<
-	TOperation extends { type: string | number },
-	TState extends BaseFuzzTestState,
+    TOperation extends { type: string | number; },
+    TState extends BaseFuzzTestState,
 >(
-	generator: AsyncGenerator<TOperation, TState>,
-	reducerOrMap:
-		| AsyncReducer<TOperation, TState>
-		| { [K in TOperation["type"]]: AsyncReducer<Extract<TOperation, { type: K }>, TState> },
-	initialState: TState,
-	saveInfo?: SaveInfo,
+    generator: AsyncGenerator<TOperation, TState>,
+    reducerOrMap:
+        | AsyncReducer<TOperation, TState>
+        | { [K in TOperation["type"]]: AsyncReducer<Extract<TOperation, { type: K; }>, TState> },
+    initialState: TState,
+    saveInfo?: SaveInfo,
 ): Promise<TState> {
-	const operations: TOperation[] = [];
-	let state: TState = initialState;
-	const reducer =
-		typeof reducerOrMap === "function"
-			? reducerOrMap
-			: combineReducersAsync<TOperation, TState>(reducerOrMap);
-	const applyOperation: (operation: TOperation) => Promise<TState> = async (op) =>
-		(await reducer(state, op)) ?? state;
+    const operations: TOperation[] = [];
+    let state: TState = initialState;
+    const applyOperation: (operation: TOperation) => Promise<TState> =
+        typeof reducerOrMap === "function"
+            ? async (op) => reducerOrMap(state, op)
+            : async (op) => {
+                const childReducer = reducerOrMap[op.type];
+                assert(childReducer !== undefined, `Expected to find child reducer for operation type: ${op.type}`);
+                const newState: TState = await childReducer(state, op);
+                return newState;
+            };
 
-	for (
-		let operation = await generator(state);
-		operation !== done;
-		operation = await generator(state)
-	) {
-		operations.push(operation);
+    for (let operation = await generator(state); operation !== done; operation = await generator(state)) {
+        operations.push(operation);
+        if (saveInfo !== undefined && operations.length === saveInfo.saveAt) {
+            await fs.writeFile(saveInfo.filepath, JSON.stringify(operations));
+        }
 
-		try {
-			state = (await applyOperation(operation)) ?? state;
-		} catch (err) {
-			console.log(`Error encountered on operation number ${operations.length}`);
-			if (saveInfo?.saveOnFailure === true) {
-				await saveOpsToFile(saveInfo.filepath, operations);
-			}
-			throw err;
-		}
-	}
+        try {
+            state = await applyOperation(operation);
+        } catch (err) {
+            console.log(`Error encountered on operation number ${operations.length}`);
+            if (saveInfo?.saveOnFailure === true) {
+                await fs.writeFile(saveInfo.filepath, JSON.stringify(operations, undefined, 4));
+            }
+            throw err;
+        }
+    }
 
-	if (saveInfo?.saveOnSuccess === true) {
-		await saveOpsToFile(saveInfo.filepath, operations);
-	}
-
-	return state;
-}
-
-/**
- * Saves the operations in a file and creates the directory if it doesn't exist.
- *
- * @param filepath - path to the file
- * @param operations - operations to save in the file
- */
-async function saveOpsToFile(filepath: string, operations: { type: string | number }[]) {
-	await fs.mkdir(path.dirname(filepath), { recursive: true });
-	await fs.writeFile(filepath, JSON.stringify(operations, undefined, 4));
+    return state;
 }
 
 /**
@@ -152,14 +128,11 @@ async function saveOpsToFile(filepath: string, operations: { type: string | numb
  * This can be useful for debugging why a fuzz test may have failed.
  * Files can also be saved on failure.
  */
-export function performFuzzActions<
-	TOperation extends { type: string | number },
-	TState extends BaseFuzzTestState,
->(
-	generator: Generator<TOperation, TState>,
-	reducer: Reducer<TOperation, TState>,
-	initialState: TState,
-	saveInfo?: SaveInfo,
+export function performFuzzActions<TOperation extends { type: string | number; }, TState extends BaseFuzzTestState>(
+    generator: Generator<TOperation, TState>,
+    reducer: Reducer<TOperation, TState>,
+    initialState: TState,
+    saveInfo?: SaveInfo
 ): TState;
 /**
  * Performs random actions on a set of clients.
@@ -189,62 +162,48 @@ export function performFuzzActions<
  * This can be useful for debugging why a fuzz test may have failed.
  * Files can also be saved on failure.
  */
-export function performFuzzActions<
-	TOperation extends { type: string | number },
-	TState extends BaseFuzzTestState,
->(
-	generator: Generator<TOperation, TState>,
-	reducerMap: { [K in TOperation["type"]]: Reducer<Extract<TOperation, { type: K }>, TState> },
-	initialState: TState,
-	saveInfo?: SaveInfo,
+export function performFuzzActions<TOperation extends { type: string | number; }, TState extends BaseFuzzTestState>(
+    generator: Generator<TOperation, TState>,
+    reducerMap: { [K in TOperation["type"]]: Reducer<Extract<TOperation, { type: K; }>, TState> },
+    initialState: TState,
+    saveInfo?: SaveInfo
 ): TState;
-export function performFuzzActions<
-	TOperation extends { type: string | number },
-	TState extends BaseFuzzTestState,
->(
-	generator: Generator<TOperation, TState>,
-	reducerOrMap:
-		| Reducer<TOperation, TState>
-		| { [K in TOperation["type"]]: Reducer<Extract<TOperation, { type: K }>, TState> },
-	initialState: TState,
-	saveInfo?: SaveInfo,
+export function performFuzzActions<TOperation extends { type: string | number; }, TState extends BaseFuzzTestState>(
+    generator: Generator<TOperation, TState>,
+    reducerOrMap:
+        | Reducer<TOperation, TState>
+        | { [K in TOperation["type"]]: Reducer<Extract<TOperation, { type: K; }>, TState> },
+    initialState: TState,
+    saveInfo?: SaveInfo,
 ): TState {
-	const operations: TOperation[] = [];
-	let state: TState = initialState;
-	const reducer =
-		typeof reducerOrMap === "function"
-			? reducerOrMap
-			: combineReducers<TOperation, TState>(reducerOrMap);
-	const applyOperation: (operation: TOperation) => TState = (op) => reducer(state, op) ?? state;
+    const operations: TOperation[] = [];
+    let state: TState = initialState;
+    const applyOperation: (operation: TOperation) => TState =
+        typeof reducerOrMap === "function"
+            ? (op) => reducerOrMap(state, op)
+            : (op) => {
+                const childReducer = reducerOrMap[op.type];
+                assert(childReducer !== undefined, `Expected to find child reducer for operation type: ${op.type}`);
+                const newState: TState = childReducer(state, op);
+                return newState;
+            };
 
-	for (let operation = generator(state); operation !== done; operation = generator(state)) {
-		operations.push(operation);
+    for (let operation = generator(state); operation !== done; operation = generator(state)) {
+        operations.push(operation);
+        if (saveInfo !== undefined && operations.length === saveInfo.saveAt) {
+            writeFileSync(saveInfo.filepath, JSON.stringify(operations));
+        }
 
-		try {
-			state = applyOperation(operation);
-		} catch (err) {
-			console.log(`Error encountered on operation number ${operations.length}`);
-			if (saveInfo?.saveOnFailure === true) {
-				saveOpsToFileSync(saveInfo.filepath, operations);
-			}
-			throw err;
-		}
-	}
+        try {
+            state = applyOperation(operation);
+        } catch (err) {
+            console.log(`Error encountered on operation number ${operations.length}`);
+            if (saveInfo?.saveOnFailure === true) {
+                writeFileSync(saveInfo.filepath, JSON.stringify(operations, undefined, 4));
+            }
+            throw err;
+        }
+    }
 
-	if (saveInfo?.saveOnSuccess === true) {
-		saveOpsToFileSync(saveInfo.filepath, operations);
-	}
-
-	return state;
-}
-
-/**
- * Saves the operations in a file and creates the directory if it doesn't exist.
- *
- * @param filepath - path to the file
- * @param operations - operations to save in the file
- */
-function saveOpsToFileSync(filepath: string, operations: { type: string | number }[]) {
-	mkdirSync(path.dirname(filepath), { recursive: true });
-	writeFileSync(filepath, JSON.stringify(operations, undefined, 4));
+    return state;
 }

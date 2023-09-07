@@ -4,8 +4,8 @@
  */
 
 module.exports = {
-	extends: [require.resolve("@fluidframework/eslint-config-fluid"), "prettier"],
-	rules: {
-		"promise/catch-or-return": ["error", { allowFinally: true }],
-	},
-};
+    "extends": [
+        "@fluidframework/eslint-config-fluid"
+    ],
+    "rules": {}
+}

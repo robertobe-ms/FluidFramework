@@ -5,16 +5,17 @@
 
 import { EventEmitter } from "events";
 import {
-	IConsumer,
-	IQueuedMessage,
-	IPartition,
-	IPartitionLambdaFactory,
-	ILogger,
-	LambdaCloseType,
-	IContextErrorData,
+    IConsumer,
+    IQueuedMessage,
+    IPartition,
+    IPartitionConfig,
+    IPartitionWithEpoch,
+    IPartitionLambdaFactory,
+    ILogger,
+    LambdaCloseType,
+    IContextErrorData,
 } from "@fluidframework/server-services-core";
 import { Lumberjack } from "@fluidframework/server-services-telemetry";
-import { Provider } from "nconf";
 import { Partition } from "./partition";
 
 /**
@@ -22,216 +23,163 @@ import { Partition } from "./partition";
  * It will route incoming messages to the appropriate partition for the messages.
  */
 export class PartitionManager extends EventEmitter {
-	private readonly partitions = new Map<number, Partition>();
-	// Start rebalancing until we receive the first rebalanced message
-	private isRebalancing = true;
+    private readonly partitions = new Map<number, Partition>();
+    // Start rebalancing until we receive the first rebalanced message
+    private isRebalancing = true;
 
-	private stopped = false;
+    private stopped = false;
 
-	constructor(
-		private readonly factory: IPartitionLambdaFactory,
-		private readonly consumer: IConsumer,
-		private readonly logger?: ILogger,
-		private readonly config?: Provider,
-		listenForConsumerErrors = true,
-	) {
-		super();
+    constructor(
+        private readonly factory: IPartitionLambdaFactory<IPartitionConfig>,
+        private readonly consumer: IConsumer,
+        private readonly logger?: ILogger) {
+        super();
 
-		// Place new Kafka messages into our processing queue
-		this.consumer.on("data", (message) => {
-			this.process(message);
-		});
+        // Place new Kafka messages into our processing queue
+        this.consumer.on("data", (message) => {
+            this.process(message);
+        });
 
-		this.consumer.on("rebalancing", (partitions) => {
-			this.rebalancing(partitions);
-		});
+        this.consumer.on("rebalancing", (partitions) => {
+            this.rebalancing(partitions);
+        });
 
-		this.consumer.on("rebalanced", (partitions: IPartition[]) => {
-			this.rebalanced(partitions);
-		});
+        this.consumer.on("rebalanced", (partitions: IPartitionWithEpoch[]) => {
+            this.rebalanced(partitions);
+        });
 
-		if (listenForConsumerErrors) {
-			this.consumer.on("error", (error, errorData: IContextErrorData) => {
-				if (this.stopped) {
-					return;
-				}
+        this.consumer.on("error", (error, errorData: IContextErrorData) => {
+            if (this.stopped) {
+                return;
+            }
 
-				this.emit("error", error, errorData);
-			});
+            this.emit("error", error, errorData);
+        });
+    }
 
-			this.consumer.on(
-				"checkpoint_success",
-				(partitionId, queuedMessage, retries, latency) => {
-					if (this.sampleMessages(100)) {
-						Lumberjack.info(`Kafka checkpoint successful`, {
-							msgOffset: queuedMessage.offset,
-							topic: queuedMessage.topic,
-							msgPartition: queuedMessage.partition,
-							retries,
-							latency,
-						});
-					}
-				},
-			);
+    public async stop(): Promise<void> {
+        this.stopped = true;
 
-			this.consumer.on(
-				"checkpoint_error",
-				(partitionId, queuedMessage, retries, latency, ex) => {
-					Lumberjack.error(
-						`Kafka checkpoint failed`,
-						{
-							msgOffset: queuedMessage.offset,
-							topic: queuedMessage.topic,
-							msgPartition: queuedMessage.partition,
-							retries,
-							latency,
-						},
-						ex,
-					);
-				},
-			);
-		}
-	}
+        this.logger?.info("Stop requested");
+        Lumberjack.info("Stop requested");
 
-	public async stop(): Promise<void> {
-		this.stopped = true;
+        // Drain all pending messages from the partitions
+        const partitionsStoppedP: Promise<void>[] = [];
+        for (const [, partition] of this.partitions) {
+            const stopP = partition.drain();
+            partitionsStoppedP.push(stopP);
+        }
+        await Promise.all(partitionsStoppedP);
 
-		this.logger?.info("Stop requested");
-		Lumberjack.info("Stop requested");
+        // Then stop them all
+        for (const [, partition] of this.partitions) {
+            partition.close(LambdaCloseType.Stop);
+        }
 
-		// Drain all pending messages from the partitions
-		const partitionsStoppedP: Promise<void>[] = [];
-		for (const [, partition] of this.partitions) {
-			const stopP = partition.drain();
-			partitionsStoppedP.push(stopP);
-		}
-		await Promise.all(partitionsStoppedP);
+        this.partitions.clear();
 
-		// Then stop them all
-		for (const [, partition] of this.partitions) {
-			partition.close(LambdaCloseType.Stop);
-		}
+        this.removeAllListeners();
+    }
 
-		this.partitions.clear();
+    private process(message: IQueuedMessage) {
+        if (this.stopped) {
+            return;
+        }
 
-		this.removeAllListeners();
-	}
+        if (this.isRebalancing) {
+            this.logger?.info(
+                `Ignoring ${message.topic}:${message.partition}@${message.offset} due to pending rebalance`);
+            Lumberjack.info(
+                `Ignoring ${message.topic}:${message.partition}@${message.offset} due to pending rebalance`);
+            return;
+        }
 
-	private process(message: IQueuedMessage) {
-		if (this.stopped) {
-			return;
-		}
+        const partition = this.partitions.get(message.partition);
+        if (!partition) {
+            this.emit(
+                "error",
+                `Received message for untracked partition ${message.topic}:${message.partition}@${message.offset}`);
+            return;
+        }
 
-		if (this.isRebalancing) {
-			this.logger?.info(
-				`Ignoring ${message.topic}:${message.partition}@${message.offset} due to pending rebalance`,
-			);
-			Lumberjack.info(
-				`Ignoring ${message.topic}:${message.partition}@${message.offset} due to pending rebalance`,
-			);
-			return;
-		}
+        partition.process(message);
+    }
 
-		const partition = this.partitions.get(message.partition);
-		if (!partition) {
-			this.emit(
-				"error",
-				`Received message for untracked partition ${message.topic}:${message.partition}@${message.offset}`,
-			);
-			return;
-		}
+    /**
+     * Called when rebalancing starts
+     * Note: The consumer may decide to only emit "rebalanced" if it wants to skip closing existing partitions
+     * @param partitions - Assigned partitions before the rebalance
+     */
+    private rebalancing(partitions: IPartition[]) {
+        this.logger?.info(`Rebalancing partitions: ${JSON.stringify(partitions)}`);
+        Lumberjack.info(`Rebalancing partitions: ${JSON.stringify(partitions)}`);
 
-		partition.process(message);
-	}
+        this.isRebalancing = true;
 
-	/**
-	 * Called when rebalancing starts
-	 * Note: The consumer may decide to only emit "rebalanced" if it wants to skip closing existing partitions
-	 * @param partitions - Assigned partitions before the rebalance
-	 */
-	private rebalancing(partitions: IPartition[]) {
-		this.logger?.info(`Rebalancing partitions: ${JSON.stringify(partitions)}`);
-		Lumberjack.info(`Rebalancing partitions: ${JSON.stringify(partitions)}`);
+        for (const [id, partition] of this.partitions) {
+            this.logger?.info(`Closing partition ${id} due to rebalancing`);
+            Lumberjack.info(`Closing partition ${id} due to rebalancing`);
+            partition.close(LambdaCloseType.Rebalance);
+        }
 
-		this.isRebalancing = true;
+        this.partitions.clear();
+    }
 
-		for (const [id, partition] of this.partitions) {
-			this.logger?.info(`Closing partition ${id} due to rebalancing`);
-			Lumberjack.info(`Closing partition ${id} due to rebalancing`);
-			partition.close(LambdaCloseType.Rebalance);
-		}
+    /**
+     * Called when rebalanced occurs
+     * @param partitions - Assigned partitions after the rebalance.
+     * May contain partitions that have been previously assigned to this consumer
+     */
+    private rebalanced(partitions: IPartitionWithEpoch[]) {
+        if (this.stopped) {
+            return;
+        }
 
-		this.partitions.clear();
-	}
+        this.isRebalancing = false;
 
-	/**
-	 * Called when rebalanced occurs
-	 * @param partitions - Assigned partitions after the rebalance.
-	 * May contain partitions that have been previously assigned to this consumer
-	 */
-	private rebalanced(partitions: IPartition[]) {
-		if (this.stopped) {
-			return;
-		}
+        const partitionsMap = new Map(partitions.map((partition) => [partition.partition, partition]));
 
-		this.isRebalancing = false;
+        // close and remove existing partitions that are no longer assigned
+        const existingPartitions = Array.from(this.partitions);
+        for (const [id, partition] of existingPartitions) {
+            if (!partitionsMap.has(id)) {
+                this.logger?.info(`Closing partition ${id} due to rebalancing`);
+                Lumberjack.info(`Closing partition ${id} due to rebalancing`);
+                partition.close(LambdaCloseType.Rebalance);
+                this.partitions.delete(id);
+            }
+        }
 
-		const partitionsMap = new Map(
-			partitions.map((partition) => [partition.partition, partition]),
-		);
+        // create new partitions
+        for (const partition of partitions) {
+            if (this.partitions.has(partition.partition)) {
+                // this partition already exists
+                // it must have existed before the rebalance
+                continue;
+            }
 
-		// close and remove existing partitions that are no longer assigned
-		const existingPartitions = Array.from(this.partitions);
-		for (const [id, partition] of existingPartitions) {
-			if (!partitionsMap.has(id)) {
-				this.logger?.info(`Closing partition ${id} due to rebalancing`);
-				Lumberjack.info(`Closing partition ${id} due to rebalancing`);
-				partition.close(LambdaCloseType.Rebalance);
-				this.partitions.delete(id);
-			}
-		}
+            // eslint-disable-next-line max-len
+            this.logger?.info(`Creating ${partition.topic}: Partition ${partition.partition}, Epoch ${partition.leaderEpoch}, Offset ${partition.offset} due to rebalance`);
+            // eslint-disable-next-line max-len
+            Lumberjack.info(`Creating ${partition.topic}: Partition ${partition.partition}, Epoch ${partition.leaderEpoch}, Offset ${partition.offset} due to rebalance`);
 
-		// create new partitions
-		for (const partition of partitions) {
-			if (this.partitions.has(partition.partition)) {
-				// this partition already exists
-				// it must have existed before the rebalance
-				continue;
-			}
+            const newPartition = new Partition(
+                partition.partition,
+                partition.leaderEpoch,
+                this.factory,
+                this.consumer,
+                this.logger);
 
-			this.logger?.info(
-				`Creating ${partition.topic}: Partition ${partition.partition}, Offset ${partition.offset} due to rebalance`,
-			);
-			Lumberjack.info(
-				`Creating ${partition.topic}: Partition ${partition.partition}, Offset ${partition.offset} due to rebalance`,
-			);
+            // Listen for error events to know when the partition has stopped processing due to an error
+            newPartition.on("error", (error, errorData: IContextErrorData) => {
+                if (this.stopped) {
+                    return;
+                }
 
-			const newPartition = new Partition(
-				partition.partition,
-				this.factory,
-				this.consumer,
-				this.logger,
-				this.config,
-			);
+                this.emit("error", error, errorData);
+            });
 
-			// Listen for error events to know when the partition has stopped processing due to an error
-			newPartition.on("error", (error, errorData: IContextErrorData) => {
-				if (this.stopped) {
-					return;
-				}
-
-				this.emit("error", error, errorData);
-			});
-
-			this.partitions.set(partition.partition, newPartition);
-		}
-	}
-
-	private sampleMessages(numberOfMessagesPerTrace: number): boolean {
-		return this.getRandomInt(numberOfMessagesPerTrace) === 0;
-	}
-
-	private getRandomInt(range: number) {
-		return Math.floor(Math.random() * range);
-	}
+            this.partitions.set(partition.partition, newPartition);
+        }
+    }
 }

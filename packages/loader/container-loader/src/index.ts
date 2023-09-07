@@ -3,16 +3,20 @@
  * Licensed under the MIT License.
  */
 
-export { ConnectionState } from "./connectionState";
-export { IContainerExperimental, waitContainerToCatchUp } from "./container";
 export {
-	ICodeDetailsLoader,
-	IDetachedBlobStorage,
-	IFluidModuleWithDetails,
-	ILoaderOptions,
-	ILoaderProps,
-	ILoaderServices,
-	Loader,
-	requestResolvedObjectFromContainer,
+    ConnectionState,
+    Container,
+    IContainerLoadOptions,
+    IContainerConfig,
+    waitContainerToCatchUp,
+} from "./container";
+export {
+    ICodeDetailsLoader,
+    IDetachedBlobStorage,
+    IFluidModuleWithDetails,
+    ILoaderOptions,
+    ILoaderProps,
+    ILoaderServices,
+    Loader,
+    RelativeLoader,
 } from "./loader";
-export { IProtocolHandler, ProtocolHandlerBuilder } from "./protocol";

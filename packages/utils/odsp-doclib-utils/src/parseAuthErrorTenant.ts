@@ -9,9 +9,8 @@ const oAuthBearerScheme = "Bearer";
  * Checks if response headers contains `www-authenticate` header and extracts tenant id that should be
  * used to identify authority which must be used to issue access token for protected resource.
  * Tenant id is represented by "realm" property. More details can be found here:
- * {@link https://tools.ietf.org/html/rfc2617#page-8}
+ * https://tools.ietf.org/html/rfc2617#page-8
  *
- * @example
  * Header sample:
  *
  * ```
@@ -23,32 +22,32 @@ const oAuthBearerScheme = "Bearer";
  * ```
  */
 export function parseAuthErrorTenant(responseHeader: Headers): string | undefined {
-	const authHeaderData = responseHeader.get("www-authenticate");
-	if (!authHeaderData) {
-		return undefined;
-	}
+    const authHeaderData = responseHeader.get("www-authenticate");
+    if (!authHeaderData) {
+        return undefined;
+    }
 
-	// header value must contain 'Bearer' scheme
-	const indexOfBearerInfo = authHeaderData.indexOf(oAuthBearerScheme);
-	if (indexOfBearerInfo < 0) {
-		return undefined;
-	}
+    // header value must contain 'Bearer' scheme
+    const indexOfBearerInfo = authHeaderData.indexOf(oAuthBearerScheme);
+    if (indexOfBearerInfo < 0) {
+        return undefined;
+    }
 
-	let tenantId: string | undefined;
-	authHeaderData
-		.substring(indexOfBearerInfo + oAuthBearerScheme.length)
-		.split(",")
-		.map((section) => {
-			if (!tenantId) {
-				const nameValuePair = section.split("=");
-				// values can be encoded and contain '=' symbol inside so it is possible to have more than one
-				if (nameValuePair.length >= 2) {
-					if (nameValuePair[0].trim().toLowerCase() === "realm") {
-						tenantId = JSON.parse(nameValuePair[1].trim());
-					}
-				}
-			}
-		});
+    let tenantId: string | undefined;
+    authHeaderData
+        .substring(indexOfBearerInfo + oAuthBearerScheme.length)
+        .split(",")
+        .map((section) => {
+            if (!tenantId) {
+                const nameValuePair = section.split("=");
+                // values can be encoded and contain '=' symbol inside so it is possible to have more than one
+                if (nameValuePair.length >= 2) {
+                    if (nameValuePair[0].trim().toLowerCase() === "realm") {
+                        tenantId = JSON.parse(nameValuePair[1].trim());
+                    }
+                }
+            }
+        });
 
-	return tenantId;
-}
+    return tenantId;
+  }

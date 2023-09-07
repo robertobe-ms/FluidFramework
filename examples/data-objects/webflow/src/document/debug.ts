@@ -4,6 +4,6 @@
  */
 
 import { IDebugger } from "debug";
-import { debug as parent } from "../debug.js";
+import { debug as parent } from "../debug";
 
 export const debug: IDebugger = parent.extend("document");

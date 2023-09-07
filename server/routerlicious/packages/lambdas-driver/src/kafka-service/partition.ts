@@ -5,17 +5,18 @@
 
 import { EventEmitter } from "events";
 import {
-	IConsumer,
-	IQueuedMessage,
-	IPartitionLambda,
-	IPartitionLambdaFactory,
-	ILogger,
-	LambdaCloseType,
-	IContextErrorData,
+    IConsumer,
+    IQueuedMessage,
+    IPartitionConfig,
+    IPartitionLambda,
+    IPartitionLambdaFactory,
+    ILogger,
+    LambdaCloseType,
+    IContextErrorData,
 } from "@fluidframework/server-services-core";
 import { QueueObject, queue } from "async";
+import * as _ from "lodash";
 import { Lumberjack } from "@fluidframework/server-services-telemetry";
-import { Provider } from "nconf";
 import { CheckpointManager } from "./checkpointManager";
 import { Context } from "./context";
 
@@ -24,157 +25,145 @@ import { Context } from "./context";
  * overall partition offset.
  */
 export class Partition extends EventEmitter {
-	private readonly q: QueueObject<IQueuedMessage>;
-	private lambdaP: Promise<IPartitionLambda> | Promise<void> | undefined;
-	private lambda: IPartitionLambda | undefined;
-	private readonly checkpointManager: CheckpointManager;
-	private readonly context: Context;
-	private closed = false;
+    private readonly q: QueueObject<IQueuedMessage>;
+    private lambdaP: Promise<IPartitionLambda> | undefined;
+    private lambda: IPartitionLambda | undefined;
+    private readonly checkpointManager: CheckpointManager;
+    private readonly context: Context;
+    private closed = false;
 
-	constructor(
-		private readonly id: number,
-		factory: IPartitionLambdaFactory,
-		consumer: IConsumer,
-		private readonly logger?: ILogger,
-		private readonly config?: Provider,
-	) {
-		super();
+    constructor(
+        private readonly id: number,
+        leaderEpoch: number,
+        factory: IPartitionLambdaFactory<IPartitionConfig>,
+        consumer: IConsumer,
+        private readonly logger?: ILogger) {
+        super();
 
-		this.checkpointManager = new CheckpointManager(id, consumer);
-		this.context = new Context(this.checkpointManager, this.logger);
-		this.context.on("error", (error: any, errorData: IContextErrorData) => {
-			this.emit("error", error, errorData);
-		});
+        // Should we pass epoch with the context?
+        const partitionConfig: IPartitionConfig = { leaderEpoch };
 
-		// Create the incoming message queue
-		this.q = queue((message: IQueuedMessage, callback) => {
-			try {
-				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				const optionalPromise = this.lambda!.handler(message)
-					?.then(callback as any)
-					.catch(callback);
-				if (optionalPromise) {
-					return;
-				}
+        this.checkpointManager = new CheckpointManager(id, consumer);
+        this.context = new Context(this.checkpointManager, this.logger);
+        this.context.on("error", (error: any, errorData: IContextErrorData) => {
+            this.emit("error", error, errorData);
+        });
 
-				callback();
-			} catch (error: any) {
-				callback(error);
-			}
-		}, 1);
-		this.q.pause();
+        // Create the incoming message queue
+        this.q = queue(
+            (message: IQueuedMessage, callback) => {
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    const optionalPromise = this.lambda!.handler(message);
+                    if (optionalPromise) {
+                        optionalPromise
+                            .then(callback as any)
+                            .catch(callback);
+                        return;
+                    }
 
-		this.lambdaP = factory
-			.create(undefined, this.context)
-			.then((lambda) => {
-				this.lambda = lambda;
-				this.lambdaP = undefined;
-				this.q.resume();
-			})
-			.catch((error) => {
-				if (this.closed) {
-					return;
-				}
+                    callback();
+                } catch (error: any) {
+                    callback(error);
+                }
+            },
+            1);
+        this.q.pause();
 
-				const errorData: IContextErrorData = {
-					restart: true,
-				};
-				this.emit("error", error, errorData);
-				this.q.kill();
-			});
+        this.lambdaP = factory.create(partitionConfig, this.context);
+        this.lambdaP.then(
+            (lambda) => {
+                this.lambda = lambda;
+                this.lambdaP = undefined;
+                this.q.resume();
+            },
+            (error) => {
+                if (this.closed) {
+                    return;
+                }
 
-		this.q.error((error) => {
-			const errorData: IContextErrorData = {
-				restart: true,
-			};
-			this.emit("error", error, errorData);
-		});
-	}
+                const errorData: IContextErrorData = {
+                    restart: true,
+                };
+                this.emit("error", error, errorData);
+                this.q.kill();
+            });
 
-	public process(rawMessage: IQueuedMessage) {
-		if (this.closed) {
-			return;
-		}
+        this.q.error((error) => {
+            const errorData: IContextErrorData = {
+                restart: true,
+            };
+            this.emit("error", error, errorData);
+        });
+    }
 
-		this.q.push(rawMessage).catch((error) => {
-			Lumberjack.error("Error pushing raw message to queue in partition", undefined, error);
-		});
-	}
+    public process(rawMessage: IQueuedMessage) {
+        if (this.closed) {
+            return;
+        }
 
-	public close(closeType: LambdaCloseType): void {
-		this.closed = true;
+        void this.q.push(rawMessage);
+    }
 
-		// Stop any pending message processing
-		this.q.kill();
+    public close(closeType: LambdaCloseType): void {
+        this.closed = true;
 
-		// Close checkpoint related classes
-		this.checkpointManager.close();
-		this.context.close();
+        // Stop any pending message processing
+        this.q.kill();
 
-		// Notify the lambda of the close
-		if (this.lambda) {
-			this.lambda.close(closeType);
-			this.lambda = undefined;
-		} else if (this.lambdaP) {
-			// asynchronously close the lambda since it's not created yet
-			this.lambdaP
-				.then((lambda) => {
-					lambda.close(closeType);
-				})
-				.catch((error) => {
-					// Lambda never existed - no need to close
-				})
-				.finally(() => {
-					this.lambda = undefined;
-					this.lambdaP = undefined;
-				});
-		}
+        // Close checkpoint related classes
+        this.checkpointManager.close();
+        this.context.close();
 
-		this.removeAllListeners();
-	}
+        // Notify the lambda of the close
+        if (this.lambda) {
+            this.lambda.close(closeType);
+            this.lambda = undefined;
+        } else if (this.lambdaP) {
+            // asynchronously close the lambda since it's not created yet
+            this.lambdaP
+                .then(
+                    (lambda) => {
+                        lambda.close(closeType);
+                    },
+                    (error) => {
+                        // Lambda never existed - no need to close
+                    })
+                .finally(() => {
+                    this.lambda = undefined;
+                    this.lambdaP = undefined;
+                });
+        }
 
-	/**
-	 * Stops processing on the partition
-	 */
-	public async drain(): Promise<void> {
-		// Drain the queue of any pending operations
-		const drainedP = new Promise<void>((resolve, reject) => {
-			// If not entries in the queue we can exit immediatley
-			if (this.q.length() === 0) {
-				this.logger?.info(`No pending work for partition ${this.id}. Exiting early`);
-				Lumberjack.info(`No pending work for partition ${this.id}. Exiting early`);
-				return resolve();
-			}
+        this.removeAllListeners();
+    }
 
-			// Wait until the queue is drained
-			this.logger?.info(`Waiting for queue to drain for partition ${this.id}`);
-			Lumberjack.info(`Waiting for queue to drain for partition ${this.id}`);
+    /**
+     * Stops processing on the partition
+     */
+    public async drain(): Promise<void> {
+        // Drain the queue of any pending operations
+        const drainedP = new Promise<void>((resolve, reject) => {
+            // If not entries in the queue we can exit immediatley
+            if (this.q.length() === 0) {
+                this.logger?.info(`No pending work for partition ${this.id}. Exiting early`);
+                Lumberjack.info(`No pending work for partition ${this.id}. Exiting early`);
+                return resolve();
+            }
 
-			this.q.drain(() => {
-				this.logger?.info(`Drained partition ${this.id}`);
-				Lumberjack.info(`Drained partition ${this.id}`);
-				resolve();
-			});
-		});
-		await drainedP;
+            // Wait until the queue is drained
+            this.logger?.info(`Waiting for queue to drain for partition ${this.id}`);
+            Lumberjack.info(`Waiting for queue to drain for partition ${this.id}`);
 
-		// Checkpoint at the latest offset
-		try {
-			await this.checkpointManager.flush();
-		} catch (err) {
-			Lumberjack.error(
-				"Error during checkpointManager.flush call",
-				{
-					partition: this.id,
-					ignoreCheckpointFlushExceptionFlag: this.config?.get(
-						"checkpoints:ignoreCheckpointFlushException",
-					),
-				},
-				err,
-			);
-			if (!this.config?.get("checkpoints:ignoreCheckpointFlushException")) {
-				throw err;
-			} // else, dont throw the error so that the service continues to shut down gracefully
-		}
-	}
+            this.q.drain(() => {
+                this.logger?.info(`Drained partition ${this.id}`);
+                Lumberjack.info(`Drained partition ${this.id}`);
+                resolve();
+            });
+        });
+        await drainedP;
+
+        // Checkpoint at the latest offset
+        await this.checkpointManager.flush();
+    }
 }

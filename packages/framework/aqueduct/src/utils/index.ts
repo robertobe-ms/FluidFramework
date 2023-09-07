@@ -3,8 +3,5 @@
  * Licensed under the MIT License.
  */
 
-export {
-	getDefaultObjectFromContainer,
-	getObjectFromContainer,
-	getObjectWithIdFromContainer,
-} from "./containerInteractions";
+export * from "./attachUtils";
+export * from "./containerInteractions";

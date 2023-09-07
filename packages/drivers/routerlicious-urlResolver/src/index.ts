@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { IAlfredUser, IConfig, RouterliciousUrlResolver } from "./urlResolver";
+export * from "./urlResolver";

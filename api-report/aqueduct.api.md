@@ -6,8 +6,7 @@
 
 import { AsyncFluidObjectProvider } from '@fluidframework/synthesize';
 import { ContainerRuntime } from '@fluidframework/container-runtime';
-import type { EventEmitter } from 'events';
-import { EventForwarder } from '@fluid-internal/client-utils';
+import { EventForwarder } from '@fluidframework/common-utils';
 import { FluidDataStoreRuntime } from '@fluidframework/datastore';
 import { FluidObject } from '@fluidframework/core-interfaces';
 import { FluidObjectSymbolProvider } from '@fluidframework/synthesize';
@@ -17,8 +16,8 @@ import { IContainerContext } from '@fluidframework/container-definitions';
 import { IContainerRuntime } from '@fluidframework/container-runtime-definitions';
 import { IContainerRuntimeBase } from '@fluidframework/runtime-definitions';
 import { IContainerRuntimeOptions } from '@fluidframework/container-runtime';
-import { IEvent } from '@fluidframework/core-interfaces';
-import { IEventProvider } from '@fluidframework/core-interfaces';
+import { IDirectory } from '@fluidframework/map';
+import { IEvent } from '@fluidframework/common-definitions';
 import { IFluidDataStoreContext } from '@fluidframework/runtime-definitions';
 import { IFluidDataStoreContextDetached } from '@fluidframework/runtime-definitions';
 import { IFluidDataStoreFactory } from '@fluidframework/runtime-definitions';
@@ -27,7 +26,7 @@ import { IFluidDataStoreRuntime } from '@fluidframework/datastore-definitions';
 import { IFluidDependencySynthesizer } from '@fluidframework/synthesize';
 import { IFluidHandle } from '@fluidframework/core-interfaces';
 import { IFluidLoadable } from '@fluidframework/core-interfaces';
-import type { IFluidMountableViewClass } from '@fluidframework/view-interfaces';
+import { IFluidMountableViewClass } from '@fluidframework/view-interfaces';
 import { IFluidRouter } from '@fluidframework/core-interfaces';
 import { IProvideFluidDataStoreRegistry } from '@fluidframework/runtime-definitions';
 import { IProvideFluidHandle } from '@fluidframework/core-interfaces';
@@ -42,7 +41,7 @@ import { RuntimeRequestHandler } from '@fluidframework/request-handler';
 
 // @public
 export class BaseContainerRuntimeFactory extends RuntimeFactoryHelper implements IProvideFluidDataStoreRegistry {
-    constructor(registryEntries: NamedFluidDataStoreRegistryEntries, dependencyContainer?: IFluidDependencySynthesizer | undefined, requestHandlers?: RuntimeRequestHandler[], runtimeOptions?: IContainerRuntimeOptions | undefined, initializeEntryPoint?: ((runtime: IContainerRuntime) => Promise<FluidObject>) | undefined);
+    constructor(registryEntries: NamedFluidDataStoreRegistryEntries, dependencyContainer?: IFluidDependencySynthesizer | undefined, requestHandlers?: RuntimeRequestHandler[], runtimeOptions?: IContainerRuntimeOptions | undefined);
     protected containerHasInitialized(runtime: IContainerRuntime): Promise<void>;
     protected containerInitializingFirstTime(runtime: IContainerRuntime): Promise<void>;
     // (undocumented)
@@ -53,11 +52,22 @@ export class BaseContainerRuntimeFactory extends RuntimeFactoryHelper implements
     instantiateFromExisting(runtime: ContainerRuntime): Promise<void>;
     // (undocumented)
     preInitialize(context: IContainerContext, existing: boolean): Promise<ContainerRuntime>;
+    }
+
+// @public
+export abstract class BaseContainerService implements IFluidRouter {
+    constructor(runtime: IContainerRuntime);
+    // (undocumented)
+    get IFluidRouter(): this;
+    // (undocumented)
+    request(request: IRequest): Promise<IResponse>;
+    // (undocumented)
+    protected readonly runtime: IContainerRuntime;
 }
 
 // @public
 export class ContainerRuntimeFactoryWithDefaultDataStore extends BaseContainerRuntimeFactory {
-    constructor(defaultFactory: IFluidDataStoreFactory, registryEntries: NamedFluidDataStoreRegistryEntries, dependencyContainer?: IFluidDependencySynthesizer, requestHandlers?: RuntimeRequestHandler[], runtimeOptions?: IContainerRuntimeOptions, initializeEntryPoint?: (runtime: IContainerRuntime) => Promise<FluidObject>);
+    constructor(defaultFactory: IFluidDataStoreFactory, registryEntries: NamedFluidDataStoreRegistryEntries, dependencyContainer?: IFluidDependencySynthesizer, requestHandlers?: RuntimeRequestHandler[], runtimeOptions?: IContainerRuntimeOptions);
     protected containerInitializingFirstTime(runtime: IContainerRuntime): Promise<void>;
     // (undocumented)
     static readonly defaultDataStoreId = "default";
@@ -65,12 +75,21 @@ export class ContainerRuntimeFactoryWithDefaultDataStore extends BaseContainerRu
     protected readonly defaultFactory: IFluidDataStoreFactory;
 }
 
+// @public (undocumented)
+export type ContainerServiceRegistryEntries = Iterable<[
+    string,
+    (runtime: IContainerRuntime) => Promise<FluidObject>
+]>;
+
 // @public
 export abstract class DataObject<I extends DataObjectTypes = DataObjectTypes> extends PureDataObject<I> {
+    // (undocumented)
     protected getUninitializedErrorString(item: string): string;
     initializeInternal(existing: boolean): Promise<void>;
+    // (undocumented)
+    request(request: IRequest): Promise<IResponse>;
     protected get root(): ISharedDirectory;
-}
+    }
 
 // @public
 export class DataObjectFactory<TObj extends DataObject<I>, I extends DataObjectTypes = DataObjectTypes> extends PureDataObjectFactory<TObj, I> {
@@ -89,6 +108,9 @@ export function defaultFluidObjectRequestHandler(fluidObject: FluidObject, reque
 
 // @public
 export const defaultRouteRequestHandler: (defaultRootId: string) => (request: IRequest, runtime: IContainerRuntime) => Promise<IResponse | undefined>;
+
+// @public
+export const generateContainerServicesRequestHandler: (serviceRegistry: ContainerServiceRegistryEntries) => RuntimeRequestHandler;
 
 // @public
 export function getDefaultObjectFromContainer<T = FluidObject>(container: IContainer): Promise<T>;
@@ -124,15 +146,14 @@ export const mountableViewRequestHandler: (MountableViewClass: IFluidMountableVi
 export abstract class PureDataObject<I extends DataObjectTypes = DataObjectTypes> extends EventForwarder<I["Events"] & IEvent> implements IFluidLoadable, IFluidRouter, IProvideFluidHandle {
     constructor(props: IDataObjectProps<I>);
     protected readonly context: IFluidDataStoreContext;
-    // @deprecated
     dispose(): void;
-    // @deprecated (undocumented)
+    // (undocumented)
     get disposed(): boolean;
     finishInitialization(existing: boolean): Promise<void>;
-    // @deprecated (undocumented)
-    protected forwardEvent(source: EventEmitter | IEventProvider<I["Events"] & IEvent>, ...events: string[]): void;
     // (undocumented)
     static getDataObject(runtime: IFluidDataStoreRuntime): Promise<PureDataObject<DataObjectTypes>>;
+    getFluidObjectFromDirectory<T extends IFluidLoadable>(key: string, directory: IDirectory, getObjectFromDirectory?: (id: string, directory: IDirectory) => IFluidHandle | undefined): Promise<T | undefined>;
+    protected getService<T extends FluidObject>(id: string): Promise<T>;
     get handle(): IFluidHandle<this>;
     protected hasInitialized(): Promise<void>;
     // (undocumented)
@@ -150,14 +171,10 @@ export abstract class PureDataObject<I extends DataObjectTypes = DataObjectTypes
     protected initializingFromExisting(): Promise<void>;
     // (undocumented)
     protected initProps?: I["InitialState"];
-    // @deprecated (undocumented)
-    protected static isEmitterEvent(event: string): boolean;
     protected preInitialize(): Promise<void>;
     protected readonly providers: AsyncFluidObjectProvider<I["OptionalProviders"]>;
     request(req: IRequest): Promise<IResponse>;
     protected readonly runtime: IFluidDataStoreRuntime;
-    // @deprecated (undocumented)
-    protected unforwardEvent(source: EventEmitter | IEventProvider<I["Events"] & IEvent>, ...events: string[]): void;
 }
 
 // @public
@@ -180,5 +197,12 @@ export class PureDataObjectFactory<TObj extends PureDataObject<I>, I extends Dat
     // (undocumented)
     readonly type: string;
 }
+
+// @public (undocumented)
+export const serviceRoutePathRoot = "_services";
+
+// @public (undocumented)
+export function waitForAttach(dataStoreRuntime: IFluidDataStoreRuntime): Promise<void>;
+
 
 ```

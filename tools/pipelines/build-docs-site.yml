@@ -13,17 +13,15 @@ pr:
     include:
     - main
     - next
-    - lts
     - release/*
   paths:
     include:
     - docs
     - tools/pipelines/build-docs-site.yml
+    - tools/pipelines/scripts/build-version.js
     - tools/pipelines/templates/build-npm-package.yml
     - tools/pipelines/templates/include-set-package-version.yml
     - tools/pipelines/templates/include-vars.yml
-    - tools/pipelines/templates/include-install-pnpm.yml
-    - tools/pipelines/templates/include-use-node-version.yml
 
 extends:
   template: templates/build-npm-package.yml
@@ -34,6 +32,6 @@ extends:
     taskBuild: build
     taskBuildDocs: false
     taskLint: true
-    taskTest: [] # no tests
+    taskTest: false
     taskPack: false
     buildNumberInPatch: true

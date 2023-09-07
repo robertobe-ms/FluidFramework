@@ -8,4 +8,4 @@
 import "./publicpath";
 
 export { fluidExport } from "./runtime";
-export { TableModel, tableModelType } from "./tableModel";
+export { TableView, tableViewType } from "./tableview";

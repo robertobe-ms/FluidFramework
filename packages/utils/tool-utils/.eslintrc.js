@@ -4,22 +4,25 @@
  */
 
 module.exports = {
-	extends: [require.resolve("@fluidframework/eslint-config-fluid/minimal"), "prettier"],
-	parserOptions: {
-		project: ["./tsconfig.json", "./src/test/tsconfig.json"],
-	},
-	rules: {
-		"@typescript-eslint/strict-boolean-expressions": "off",
-		"import/no-nodejs-modules": "off",
-		"unicorn/filename-case": [
-			"error",
-			{
-				cases: {
-					camelCase: true,
-					pascalCase: true,
-				},
-				ignore: [/.*fluidToolRC\.ts$/],
-			},
-		],
-	},
-};
+    "extends": [
+        "@fluidframework/eslint-config-fluid"
+    ],
+    "parserOptions": {
+        "project": ["./tsconfig.json", "./src/test/tsconfig.json"]
+    },
+    "rules": {
+        "@typescript-eslint/strict-boolean-expressions": "off",
+        "unicorn/filename-case": [
+            "error",
+            {
+                "cases": {
+                    "camelCase": true,
+                    "pascalCase": true
+                },
+                "ignore": [
+                    /.*fluidToolRC\.ts$/,
+                ]
+            }
+        ],
+    }
+}

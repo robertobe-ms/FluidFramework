@@ -1,3 +1,2 @@
 #!/usr/bin/env node
-const mod = require("../dist/assignTestPorts.js");
-mod.writePortMapFile();
+require("../dist/assignTestPorts.js");

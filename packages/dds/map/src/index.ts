@@ -4,44 +4,18 @@
  */
 
 /**
- * The `map` library provides interfaces and implementing classes for map-like distributed data structures.
+ * The `map` package provides interfaces and implementing classes for map-like distributed data structures.
  *
- * @remarks The following distributed data structures are defined in this library:
+ * @remarks
+ * The following distributed data structures are defined in this package:
  *
- * - {@link SharedMap}
- *
- * - {@link SharedDirectory}
+ * - {@link @fluidframework/map#SharedMap}
+ * - {@link @fluidframework/map#SharedDirectory}
  *
  * @packageDocumentation
  */
 
-export {
-	DirectoryFactory,
-	ICreateInfo,
-	IDirectoryClearOperation,
-	IDirectoryCreateSubDirectoryOperation,
-	IDirectoryDataObject,
-	IDirectoryDeleteOperation,
-	IDirectoryDeleteSubDirectoryOperation,
-	IDirectoryKeyOperation,
-	IDirectoryNewStorageFormat,
-	IDirectoryOperation,
-	IDirectorySetOperation,
-	IDirectoryStorageOperation,
-	IDirectorySubDirectoryOperation,
-	SharedDirectory,
-} from "./directory";
-export {
-	IDirectory,
-	IDirectoryEvents,
-	IDirectoryValueChanged,
-	ISerializableValue,
-	ISerializedValue,
-	ISharedDirectory,
-	ISharedDirectoryEvents,
-	ISharedMap,
-	ISharedMapEvents,
-	IValueChanged,
-} from "./interfaces";
-export { LocalValueMaker, ILocalValue } from "./localValues";
-export { MapFactory, SharedMap } from "./map";
+export * from "./interfaces";
+export * from "./map";
+export * from "./directory";
+export { LocalValueMaker } from "./localValues";

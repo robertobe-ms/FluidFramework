@@ -3,6 +3,6 @@
  * Licensed under the MIT License.
  */
 
-export { IKafkaConsumerOptions, RdkafkaConsumer } from "./rdkafkaConsumer";
-export { IKafkaProducerOptions, RdkafkaProducer } from "./rdkafkaProducer";
-export { IRdkafkaResources, RdkafkaResources, RdkafkaResourcesFactory } from "./resourcesFactory";
+export * from "./rdkafkaConsumer";
+export * from "./rdkafkaProducer";
+export * from "./resourcesFactory";

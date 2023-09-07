@@ -3,10 +3,6 @@
  * Licensed under the MIT License.
  */
 
-export {
-	createDeliCheckpointManagerFromCollection,
-	ICheckpointParams,
-	IDeliCheckpointManager,
-} from "./checkpointManager";
-export { DeliLambda, IDeliLambdaEvents, OpEventType } from "./lambda";
-export { DeliLambdaFactory } from "./lambdaFactory";
+export * from "./checkpointManager";
+export * from "./lambda";
+export * from "./lambdaFactory";

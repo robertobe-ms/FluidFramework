@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { OrderingResourcesFactory } from "./resourcesFactory";
+export * from "./resourcesFactory";

@@ -6,6 +6,6 @@
 export { TableDocument } from "./document";
 export { TableSlice } from "./slice";
 export { ITable } from "./table";
-export { TableDocumentType, TableSliceType } from "./componentTypes";
+export * from "./componentTypes";
 export { parseRange, colIndexToName } from "./cellrange";
-export { createTableWithInterception } from "./interception";
+export * from "./interception";

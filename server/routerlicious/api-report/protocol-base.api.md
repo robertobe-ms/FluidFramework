@@ -5,8 +5,10 @@
 ```ts
 
 import * as git from '@fluidframework/gitresources';
+import { IAttachment } from '@fluidframework/protocol-definitions';
+import { IBlob } from '@fluidframework/protocol-definitions';
 import { ICommittedProposal } from '@fluidframework/protocol-definitions';
-import { IDocumentAttributes } from '@fluidframework/protocol-definitions';
+import { ICreateTreeEntry } from '@fluidframework/gitresources';
 import { IProcessMessageResult } from '@fluidframework/protocol-definitions';
 import { IQuorum } from '@fluidframework/protocol-definitions';
 import { IQuorumClients } from '@fluidframework/protocol-definitions';
@@ -18,11 +20,48 @@ import { ISequencedClient } from '@fluidframework/protocol-definitions';
 import { ISequencedDocumentMessage } from '@fluidframework/protocol-definitions';
 import { ISequencedProposal } from '@fluidframework/protocol-definitions';
 import { ISnapshotTreeEx } from '@fluidframework/protocol-definitions';
+import { ITree } from '@fluidframework/protocol-definitions';
+import { ITree as ITree_2 } from '@fluidframework/gitresources';
+import { ITreeEntry } from '@fluidframework/protocol-definitions';
 import { SummaryObject } from '@fluidframework/protocol-definitions';
 import { TypedEventEmitter } from '@fluidframework/common-utils';
 
+// @public (undocumented)
+export function addBlobToTree(tree: ITree, blobName: string, content: object): void;
+
 // @public
-export function buildGitTreeHierarchy(flatTree: git.ITree, blobsShaToPathCache?: Map<string, string>, removeAppTreePrefix?: boolean): ISnapshotTreeEx;
+export class AttachmentTreeEntry {
+    constructor(path: string, id: string);
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly mode = FileMode.File;
+    // (undocumented)
+    readonly path: string;
+    // (undocumented)
+    readonly type = TreeEntry.Attachment;
+    // (undocumented)
+    readonly value: IAttachment;
+}
+
+// @public
+export class BlobTreeEntry {
+    constructor(path: string, contents: string, encoding?: "utf-8" | "base64");
+    // (undocumented)
+    readonly mode = FileMode.File;
+    // (undocumented)
+    readonly path: string;
+    // (undocumented)
+    readonly type = TreeEntry.Blob;
+    // (undocumented)
+    readonly value: IBlob;
+}
+
+// @public
+export function buildHierarchy(flatTree: git.ITree, blobsShaToPathCache?: Map<string, string>, removeAppTreePrefix?: boolean): ISnapshotTreeEx;
+
+// @public (undocumented)
+export function generateServiceProtocolEntries(deli: string, scribe: string): ITreeEntry[];
 
 // @public
 export function getGitMode(value: SummaryObject): string;
@@ -31,22 +70,7 @@ export function getGitMode(value: SummaryObject): string;
 export function getGitType(value: SummaryObject): "blob" | "tree";
 
 // @public (undocumented)
-export interface IProtocolHandler {
-    // (undocumented)
-    readonly attributes: IDocumentAttributes;
-    // (undocumented)
-    close(): void;
-    // (undocumented)
-    getProtocolState(): IScribeProtocolState;
-    // (undocumented)
-    processMessage(message: ISequencedDocumentMessage, local: boolean): IProcessMessageResult;
-    // (undocumented)
-    readonly quorum: IQuorum;
-    // (undocumented)
-    setConnectionState(connected: boolean, clientId: string | undefined): any;
-    // (undocumented)
-    snapshot(): IQuorumSnapshot;
-}
+export function getQuorumTreeEntries(documentId: string, minimumSequenceNumber: number, sequenceNumber: number, term: number, quorumSnapshot: IQuorumSnapshot): ITreeEntry[];
 
 // @public
 export interface IQuorumSnapshot {
@@ -73,10 +97,17 @@ export interface IScribeProtocolState {
 }
 
 // @public
-export class ProtocolOpHandler implements IProtocolHandler {
-    constructor(minimumSequenceNumber: number, sequenceNumber: number, members: [string, ISequencedClient][], proposals: [number, ISequencedProposal, string[]][], values: [string, ICommittedProposal][], sendProposal: (key: string, value: any) => number);
-    // (undocumented)
-    get attributes(): IDocumentAttributes;
+export const isServiceMessageType: (type: string) => boolean;
+
+// @public (undocumented)
+export function isSystemMessage(message: ISequencedDocumentMessage): boolean;
+
+// @public (undocumented)
+export function mergeAppAndProtocolTree(appSummaryTree: ITree_2, protocolTree: ITree_2): ICreateTreeEntry[];
+
+// @public
+export class ProtocolOpHandler {
+    constructor(minimumSequenceNumber: number, sequenceNumber: number, term: number | undefined, members: [string, ISequencedClient][], proposals: [number, ISequencedProposal, string[]][], values: [string, ICommittedProposal][], sendProposal: (key: string, value: any) => number);
     // (undocumented)
     close(): void;
     getProtocolState(): IScribeProtocolState;
@@ -85,13 +116,11 @@ export class ProtocolOpHandler implements IProtocolHandler {
     // (undocumented)
     processMessage(message: ISequencedDocumentMessage, local: boolean): IProcessMessageResult;
     // (undocumented)
-    get quorum(): Quorum;
+    readonly quorum: Quorum;
     // (undocumented)
     sequenceNumber: number;
     // (undocumented)
-    setConnectionState(connected: boolean, clientId: string | undefined): void;
-    // (undocumented)
-    snapshot(): IQuorumSnapshot;
+    readonly term: number;
 }
 
 // @public
@@ -160,6 +189,19 @@ export type QuorumProposalsSnapshot = {
     proposals: [number, ISequencedProposal, string[]][];
     values: [string, ICommittedProposal][];
 };
+
+// @public
+export class TreeTreeEntry {
+    constructor(path: string, value: ITree);
+    // (undocumented)
+    readonly mode = FileMode.Directory;
+    // (undocumented)
+    readonly path: string;
+    // (undocumented)
+    readonly type = TreeEntry.Tree;
+    // (undocumented)
+    readonly value: ITree;
+}
 
 // (No @packageDocumentation comment for this package)
 

@@ -8,16 +8,12 @@ import * as api from '@fluidframework/protocol-definitions';
 import { AxiosInstance } from 'axios';
 import { AxiosRequestConfig } from 'axios';
 import { AxiosRequestHeaders } from 'axios';
-import { ICreateTreeEntry } from '@fluidframework/gitresources';
-import { IQuorumSnapshot } from '@fluidframework/protocol-base';
 import { ISequencedDocumentMessage } from '@fluidframework/protocol-definitions';
 import { ISnapshotTree } from '@fluidframework/protocol-definitions';
 import { ISnapshotTreeEx } from '@fluidframework/protocol-definitions';
 import { ISummaryHandle } from '@fluidframework/protocol-definitions';
 import { ISummaryTree as ISummaryTree_2 } from '@fluidframework/protocol-definitions';
 import { ITokenClaims } from '@fluidframework/protocol-definitions';
-import { ITree } from '@fluidframework/gitresources';
-import { ITreeEntry } from '@fluidframework/protocol-definitions';
 import { IUser } from '@fluidframework/protocol-definitions';
 import * as resources from '@fluidframework/gitresources';
 import { ScopeType } from '@fluidframework/protocol-definitions';
@@ -33,14 +29,8 @@ export class BasicRestWrapper extends RestWrapper {
 // @public
 export const buildTreePath: (...nodeNames: string[]) => string;
 
-// @public
-export const canDeleteDoc: (scopes: string[]) => boolean;
-
 // @public (undocumented)
 export const canRead: (scopes: string[]) => boolean;
-
-// @public (undocumented)
-export const canRevokeToken: (scopes: string[]) => boolean;
 
 // @public (undocumented)
 export const canSummarize: (scopes: string[]) => boolean;
@@ -50,12 +40,6 @@ export const canWrite: (scopes: string[]) => boolean;
 
 // @public (undocumented)
 export const choose: () => string;
-
-// @public
-export function convertFirstSummaryWholeSummaryTreeToSummaryTree(wholeSummaryTree: IWholeSummaryTree, unreferenced?: true | undefined): ISummaryTree;
-
-// @public
-export function convertSortedNumberArrayToRanges(numberArray: number[]): number[][];
 
 // @public
 export function convertSummaryTreeToWholeSummaryTree(parentHandle: string | undefined, tree: ISummaryTree, path?: string, rootNodeName?: string): IWholeSummaryTree;
@@ -72,17 +56,11 @@ export function createFluidServiceNetworkError(statusCode: number, errorData?: I
 // @public (undocumented)
 export const defaultHash = "00000000";
 
-// @public
-export const DocDeleteScopeType = "doc:delete";
-
 // @public (undocumented)
 export const DriverVersionHeaderName = "x-driver-version";
 
 // @public (undocumented)
 export type ExtendedSummaryObject = SummaryObject | IEmbeddedSummaryHandle;
-
-// @public (undocumented)
-export function generateServiceProtocolEntries(deli: string, scribe: string): ITreeEntry[];
 
 // @public
 export function generateToken(tenantId: string, documentId: string, key: string, scopes: ScopeType[], user?: IUser, lifetime?: number, ver?: string): string;
@@ -98,12 +76,6 @@ export function getNextHash(message: ISequencedDocumentMessage, lastHash: string
 
 // @public (undocumented)
 export function getOrCreateRepository(endpoint: string, owner: string, repository: string, headers?: AxiosRequestHeaders): Promise<void>;
-
-// @public (undocumented)
-export function getQuorumTreeEntries(minimumSequenceNumber: number, sequenceNumber: number, quorumSnapshot: IQuorumSnapshot): ITreeEntry[];
-
-// @public
-export const getRandomInt: (range: number) => number;
 
 // @public (undocumented)
 export function getRandomName(connector?: string, capitalize?: boolean): string;
@@ -128,7 +100,7 @@ export class GitManager implements IGitManager {
     // (undocumented)
     createRef(branch: string, sha: string): Promise<resources.IRef>;
     // (undocumented)
-    createSummary(summary: IWholeSummaryPayload, initial?: boolean): Promise<IWriteSummaryResponse>;
+    createSummary(summary: IWholeSummaryPayload): Promise<IWriteSummaryResponse>;
     // (undocumented)
     createTree(files: api.ITree): Promise<resources.ITree>;
     // (undocumented)
@@ -165,7 +137,7 @@ export class Historian implements IHistorian {
     // (undocumented)
     createRef(params: resources.ICreateRefParams): Promise<resources.IRef>;
     // (undocumented)
-    createSummary(summary: IWholeSummaryPayload, initial?: boolean): Promise<IWriteSummaryResponse>;
+    createSummary(summary: IWholeSummaryPayload): Promise<IWriteSummaryResponse>;
     // (undocumented)
     createTag(tag: resources.ICreateTagParams): Promise<resources.ITag>;
     // (undocumented)
@@ -263,7 +235,7 @@ export interface IGitManager {
     // (undocumented)
     createRef(branch: string, sha: string): Promise<resources.IRef>;
     // (undocumented)
-    createSummary(summary: IWholeSummaryPayload, initial?: boolean): Promise<IWriteSummaryResponse>;
+    createSummary(summary: IWholeSummaryPayload): Promise<IWriteSummaryResponse>;
     // (undocumented)
     createTree(files: api.ITree): Promise<resources.ITree>;
     // (undocumented)
@@ -303,7 +275,7 @@ export interface IGitService {
     // (undocumented)
     createRef(params: resources.ICreateRefParams): Promise<resources.IRef>;
     // (undocumented)
-    createSummary(summary: IWholeSummaryPayload, initial?: boolean): Promise<IWriteSummaryResponse>;
+    createSummary(summary: IWholeSummaryPayload): Promise<IWriteSummaryResponse>;
     // (undocumented)
     createTag(tag: resources.ICreateTagParams): Promise<resources.ITag>;
     // (undocumented)
@@ -368,12 +340,13 @@ export interface IPatchRefParamsExternal extends resources.IPatchRefParams {
     config?: IExternalWriterConfig;
 }
 
-// @public
+// @public (undocumented)
 export interface ISession {
-    deltaStreamUrl: string;
+    // (undocumented)
     historianUrl: string;
-    isSessionActive: boolean;
+    // (undocumented)
     isSessionAlive: boolean;
+    // (undocumented)
     ordererUrl: string;
 }
 
@@ -510,12 +483,6 @@ export interface IWriteSummaryResponse {
 }
 
 // @public
-export const LatestSummaryId = "latest";
-
-// @public (undocumented)
-export function mergeAppAndProtocolTree(appSummaryTree: ITree, protocolTree: ITree): ICreateTreeEntry[];
-
-// @public
 export class NetworkError extends Error {
     constructor(
     code: number,
@@ -560,19 +527,19 @@ export abstract class RestWrapper {
     // (undocumented)
     protected defaultQueryString: Record<string, unknown>;
     // (undocumented)
-    delete<T>(url: string, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders, additionalOptions?: Partial<Omit<AxiosRequestConfig, "baseURL" | "headers" | "maxBodyLength" | "maxContentLength" | "method" | "url">>): Promise<T>;
+    delete<T>(url: string, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders): Promise<T>;
     // (undocumented)
     protected generateQueryString(queryStringValues: Record<string, unknown>): string;
     // (undocumented)
-    get<T>(url: string, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders, additionalOptions?: Partial<Omit<AxiosRequestConfig, "baseURL" | "headers" | "maxBodyLength" | "maxContentLength" | "method" | "url">>): Promise<T>;
+    get<T>(url: string, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders): Promise<T>;
     // (undocumented)
     protected readonly maxBodyLength: number;
     // (undocumented)
     protected readonly maxContentLength: number;
     // (undocumented)
-    patch<T>(url: string, requestBody: any, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders, additionalOptions?: Partial<Omit<AxiosRequestConfig, "baseURL" | "headers" | "maxBodyLength" | "maxContentLength" | "method" | "url">>): Promise<T>;
+    patch<T>(url: string, requestBody: any, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders): Promise<T>;
     // (undocumented)
-    post<T>(url: string, requestBody: any, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders, additionalOptions?: Partial<Omit<AxiosRequestConfig, "baseURL" | "headers" | "maxBodyLength" | "maxContentLength" | "method" | "url">>): Promise<T>;
+    post<T>(url: string, requestBody: any, queryString?: Record<string, unknown>, headers?: AxiosRequestHeaders): Promise<T>;
     // (undocumented)
     protected abstract request<T>(options: AxiosRequestConfig, statusCode: number): Promise<T>;
 }
@@ -581,14 +548,11 @@ export abstract class RestWrapper {
 export class SummaryTreeUploadManager implements ISummaryUploadManager {
     constructor(manager: IGitManager, blobsShaCache: Map<string, string>, getPreviousFullSnapshot: (parentHandle: string) => Promise<ISnapshotTreeEx | null | undefined>);
     // (undocumented)
-    writeSummaryTree(summaryTree: ISummaryTree_2, parentHandle: string, summaryType: IWholeSummaryPayloadType, sequenceNumber?: number, initial?: boolean): Promise<string>;
-}
+    writeSummaryTree(summaryTree: ISummaryTree_2, parentHandle: string, summaryType: IWholeSummaryPayloadType, sequenceNumber?: number): Promise<string>;
+    }
 
 // @public
 export function throwFluidServiceNetworkError(statusCode: number, errorData?: INetworkErrorDetails | string): never;
-
-// @public
-export const TokenRevokeScopeType = "token:revoke";
 
 // @public
 export function validateTokenClaims(token: string, documentId: string, tenantId: string): ITokenClaims;
@@ -606,8 +570,9 @@ export type WholeSummaryTreeValue = IWholeSummaryTree | IWholeSummaryBlob;
 export class WholeSummaryUploadManager implements ISummaryUploadManager {
     constructor(manager: IGitManager);
     // (undocumented)
-    writeSummaryTree(summaryTree: ISummaryTree, parentHandle: string | undefined, summaryType: IWholeSummaryPayloadType, sequenceNumber?: number, initial?: boolean): Promise<string>;
-}
+    writeSummaryTree(summaryTree: ISummaryTree, parentHandle: string | undefined, summaryType: IWholeSummaryPayloadType, sequenceNumber?: number): Promise<string>;
+    }
+
 
 // (No @packageDocumentation comment for this package)
 

@@ -15,7 +15,7 @@ your other telemetry, and route the event data in whatever way you need.
 The `ITelemetryBaseLogger` is an interface within the `@fluidframework/common-definitions` package. This interface can
 be implemented and passed into the service client's constructor via the `props` parameter.
 
-All Fluid service clients (for example, [AzureClient][]) and [TinyliciousClient][])) allow passing a `logger?: ITelemetryBaseLogger`
+All Fluid service clients (for example, `AzureClient` and `TinyliciousClient`) allow passing a `logger?: ITelemetryBaseLogger`
 into the service client props. Both `createContainer()` and `getContainer()` methods will then create an instance of the `logger`.
 
 `TinyliciousClientProps` interface definition takes an optional parameter `logger`.
@@ -46,8 +46,8 @@ export interface ITelemetryBaseLogger {
 }
 ```
 
--   `send()`
-    -   The `send()` method is called by the container's telemetry system whenever a telemetry event occurs. This method
+- `send()`
+  - The `send()` method is called by the container's telemetry system whenever a telemetry event occurs. This method
     takes in an ITelemetryBaseEvent type parameter, which is also within the `@fluidframework/common-definitions`
     package. Given this method is part of an interface, users can implement a custom telemetry logic for the container's
     telemetry system to execute.
@@ -59,7 +59,7 @@ example, you may wish to handle some categories differently than others, or you 
 the input.
 
 Regardless of your logic, `ITelemetryBaseLogger` must be implemented, and you must call the `send()` method ultimately
-since it is the actual method that is piped to the container's telemetry system and sends the telemetry events.
+since it is the actual method that is piped to the container's telemetry system and sends the telemetry event.
 
 To see an example of building custom logic into the telemetry implementation, see the `ITelemetryLogger` interface
 snippets below, or in the `@fluidframework/common-definitions` package for full details.
@@ -96,8 +96,8 @@ public sendTelemetryEvent(event: ITelemetryGenericEvent, error?: any) {
 }
 ```
 
-Like demonstrated here, it is imperative to ensure `send()` is ultimately called at the end of custom properties.
-This ensures that information is piped to the container's telemetry system, and that the telemetry event is correctly fired.
+Like demonstrated here, it is imperative to ensure `send()` is ultimately called at the end of custom properties for the
+information to be piped to the container's telemetry system and sends the telemetry event.
 
 ## ITelemetryBaseEvent interface
 
@@ -142,10 +142,10 @@ is safe to log from a data privacy standpoint.
 
 The Fluid Framework sends events in the following categories:
 
--   error -- used to identify and report error conditions, e.g. duplicate data store IDs.
--   performance -- used to track performance-critical code paths within the framework. For example, the summarizer tracks
+- error -- used to identify and report error conditions, e.g. duplicate data store IDs.
+- performance -- used to track performance-critical code paths within the framework. For example, the summarizer tracks
   how long it takes to create or load a summary and reports this information in an event.
--   generic -- used as a catchall for events that are informational and don't represent an activity with a duration like a
+- generic -- used as a catchall for events that are informational and don't represent an activity with a duration like a
   performance event.
 
 ### EventName
@@ -223,7 +223,7 @@ suggests, the `ConsoleLogger` defined the `send()` method to stringify the entir
 browser console.
 
 ```ts
-import { ITelemetryBaseLogger, ITelemetryBaseEvent } from "@fluidframework/core-interfaces";
+import { ITelemetryBaseLogger, ITelemetryBaseEvent } from "@fluidframework/common-definitions";
 
 // Define a custom ITelemetry Logger. This logger will be passed into TinyliciousClient
 // and gets hooked up to the Tinylicious container telemetry system.
@@ -277,54 +277,11 @@ The `DebugLogger` offers a convenient way to output all telemetry events to the 
 Under the hood, `DebugLogger` uses the [debug](https://github.com/visionmedia/debug) library. The `debug` library enables Fluid to send to a unique 'namespace,' `fluid`. By default these messages are hidden but they can be enabled
 in both Node.js and a web browser.
 
-**To enable Fluid Framework logging in the browser,** set the `localStorage.debug` variable in the JavaScript console,
-after which you will need to reload the page.
+**To enable Fluid Framework logging in the browser,** set the `localStorage.debug` variable in the JavaScript console, after which you will need to reload the page.
 
 ```js
 localStorage.debug = 'fluid:*'
 ```
-
-You'll also need to enable the `Verbose` logging level in the console. The dropdown that controls that is just above it,
-to the right of the Filter input box (it might say "Default Levels").
-
-![A screenshot of how to enable the Verbose logging level in the console](/images/verbose-log-level.png)
-
-It's not recommended to set `localStorage.debug` in code; your users will see a very spammy console window if you do.
+It's not recommended to set this in code; your users will see a very spammy console window if you do.
 
 **To enable Fluid Framework logging in a Node.js application,** set the `DEBUG` environment variable when running the app.
-
-
-<!-- AUTO-GENERATED-CONTENT:START (INCLUDE:path=../../../_includes/links.md) -->
-
-<!-- prettier-ignore-start -->
-<!-- NOTE: This section is automatically generated by embedding the referenced file contents. Do not update these generated contents directly. -->
-
-<!-- Links -->
-
-<!-- Concepts -->
-
-[Fluid container]: {{< relref "containers.md" >}}
-[Signals]: {{< relref "/docs/concepts/signals.md" >}}
-
-<!-- Distributed Data Structures -->
-
-[SharedCounter]: {{< relref "/docs/data-structures/counter.md" >}}
-[SharedMap]: {{< relref "/docs/data-structures/map.md" >}}
-[SharedString]: {{< relref "/docs/data-structures/string.md" >}}
-[Sequences]:  {{< relref "/docs/data-structures/sequences.md" >}}
-
-<!-- API links -->
-
-[fluid-framework]: {{< relref "/docs/apis/fluid-framework.md" >}}
-[@fluidframework/azure-client]: {{< relref "/docs/apis/azure-client.md" >}}
-[@fluidframework/tinylicious-client]: {{< relref "/docs/apis/tinylicious-client.md" >}}
-
-[AzureClient]: {{< relref "/docs/apis/azure-client/AzureClient-class.md" >}}
-[TinyliciousClient]: {{< relref "/docs/apis/tinylicious-client/TinyliciousClient-class.md" >}}
-
-[FluidContainer]: {{< relref "/docs/apis/fluid-static/fluidcontainer-class.md" >}}
-[IFluidContainer]: {{< relref "/docs/apis/fluid-static/ifluidcontainer-interface.md" >}}
-
-<!-- prettier-ignore-end -->
-
-<!-- AUTO-GENERATED-CONTENT:END -->

@@ -4,7 +4,6 @@
 
 ```ts
 
-import { AttributionKey } from '@fluidframework/runtime-definitions';
 import { IChannelAttributes } from '@fluidframework/datastore-definitions';
 import { IChannelFactory } from '@fluidframework/datastore-definitions';
 import { IChannelStorageService } from '@fluidframework/datastore-definitions';
@@ -17,54 +16,42 @@ import { ISummaryTreeWithStats } from '@fluidframework/runtime-definitions';
 import { Serializable } from '@fluidframework/datastore-definitions';
 import { SharedObject } from '@fluidframework/shared-object-base';
 
-// @alpha
-export interface ICellAttributionOptions {
-    // (undocumented)
-    track?: boolean;
-}
-
-// @alpha
-export interface ICellOptions {
-    // (undocumented)
-    attribution?: ICellAttributionOptions;
-}
-
 // @public
 export interface ISharedCell<T = any> extends ISharedObject<ISharedCellEvents<T>> {
     delete(): void;
     empty(): boolean;
     get(): Serializable<T> | undefined;
-    // @alpha (undocumented)
-    getAttribution(): AttributionKey | undefined;
     set(value: Serializable<T>): void;
 }
 
-// @public
+// @public (undocumented)
 export interface ISharedCellEvents<T> extends ISharedObjectEvents {
+    // (undocumented)
     (event: "valueChanged", listener: (value: Serializable<T>) => void): any;
+    // (undocumented)
     (event: "delete", listener: () => void): any;
 }
 
 // @public
 export class SharedCell<T = any> extends SharedObject<ISharedCellEvents<T>> implements ISharedCell<T> {
     constructor(id: string, runtime: IFluidDataStoreRuntime, attributes: IChannelAttributes);
-    // @internal (undocumented)
-    protected applyStashedOp(content: unknown): unknown;
-    static create(runtime: IFluidDataStoreRuntime, id?: string): SharedCell;
+    // (undocumented)
+    protected applyStashedOp(): void;
+    static create(runtime: IFluidDataStoreRuntime, id?: string): SharedCell<any>;
     delete(): void;
     empty(): boolean;
     get(): Serializable<T> | undefined;
-    // @alpha (undocumented)
-    getAttribution(): AttributionKey | undefined;
     static getFactory(): IChannelFactory;
     protected initializeLocalCore(): void;
     // (undocumented)
     protected loadCore(storage: IChannelStorageService): Promise<void>;
     protected onDisconnect(): void;
     protected processCore(message: ISequencedDocumentMessage, local: boolean, localOpMetadata: unknown): void;
-    protected rollback(content: any, localOpMetadata: unknown): void;
     set(value: Serializable<T>): void;
     protected summarizeCore(serializer: IFluidSerializer): ISummaryTreeWithStats;
 }
+
+
+// (No @packageDocumentation comment for this package)
 
 ```

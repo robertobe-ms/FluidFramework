@@ -4,40 +4,45 @@
 
 ```ts
 
-// @public @deprecated
+// @public
 export type ExtendEventProvider<TBaseEvent extends IEvent, TBase extends IEventProvider<TBaseEvent>, TEvent extends TBaseEvent> = Omit<Omit<Omit<TBase, "on">, "once">, "off"> & IEventProvider<TBaseEvent> & IEventProvider<TEvent>;
 
-// @public @deprecated
+// @public (undocumented)
 export interface IDisposable {
+    // (undocumented)
     dispose(error?: Error): void;
+    // (undocumented)
     readonly disposed: boolean;
 }
 
-// @public @deprecated
+// @public (undocumented)
 export interface IErrorEvent extends IEvent {
-    // @eventProperty
+    // (undocumented)
     (event: "error", listener: (message: any) => void): any;
 }
 
-// @public @deprecated
+// @public (undocumented)
 export interface IEvent {
-    // @eventProperty
+    // (undocumented)
     (event: string, listener: (...args: any[]) => void): any;
 }
 
-// @public @deprecated
+// @public (undocumented)
 export interface IEventProvider<TEvent extends IEvent> {
+    // (undocumented)
     readonly off: IEventTransformer<this, TEvent>;
+    // (undocumented)
     readonly on: IEventTransformer<this, TEvent>;
+    // (undocumented)
     readonly once: IEventTransformer<this, TEvent>;
 }
 
-// @public @deprecated
+// @public (undocumented)
 export type IEventThisPlaceHolder = {
     thisPlaceHolder: "thisPlaceHolder";
 };
 
-// @public @deprecated
+// @public (undocumented)
 export type IEventTransformer<TThis, TEvent extends IEvent> = TEvent extends {
     (event: infer E0, listener: (...args: infer A0) => void): any;
     (event: infer E1, listener: (...args: infer A1) => void): any;
@@ -190,12 +195,12 @@ export type IEventTransformer<TThis, TEvent extends IEvent> = TEvent extends {
     (event: string, listener: (...args: any[]) => void): any;
 } ? TransformedEvent<TThis, E0, A0> : TransformedEvent<TThis, string, any[]>;
 
-// @public @deprecated
+// @public
 export interface ILoggingError extends Error {
     getTelemetryProperties(): ITelemetryProperties;
 }
 
-// @public @deprecated
+// @public
 export interface ITaggedTelemetryPropertyType {
     // (undocumented)
     tag: string;
@@ -203,7 +208,7 @@ export interface ITaggedTelemetryPropertyType {
     value: TelemetryEventPropertyType;
 }
 
-// @public @deprecated
+// @public
 export interface ITelemetryBaseEvent extends ITelemetryProperties {
     // (undocumented)
     category: string;
@@ -211,19 +216,19 @@ export interface ITelemetryBaseEvent extends ITelemetryProperties {
     eventName: string;
 }
 
-// @public @deprecated
+// @public
 export interface ITelemetryBaseLogger {
     // (undocumented)
     send(event: ITelemetryBaseEvent): void;
 }
 
-// @public @deprecated
+// @public
 export interface ITelemetryErrorEvent extends ITelemetryProperties {
     // (undocumented)
     eventName: string;
 }
 
-// @public @deprecated
+// @public
 export interface ITelemetryGenericEvent extends ITelemetryProperties {
     // (undocumented)
     category?: TelemetryEventCategory;
@@ -231,7 +236,7 @@ export interface ITelemetryGenericEvent extends ITelemetryProperties {
     eventName: string;
 }
 
-// @public @deprecated
+// @public
 export interface ITelemetryLogger extends ITelemetryBaseLogger {
     send(event: ITelemetryBaseEvent): void;
     sendErrorEvent(event: ITelemetryErrorEvent, error?: any): void;
@@ -239,30 +244,33 @@ export interface ITelemetryLogger extends ITelemetryBaseLogger {
     sendTelemetryEvent(event: ITelemetryGenericEvent, error?: any): void;
 }
 
-// @public @deprecated
+// @public
 export interface ITelemetryPerformanceEvent extends ITelemetryGenericEvent {
     // (undocumented)
     duration?: number;
 }
 
-// @public @deprecated
+// @public (undocumented)
 export interface ITelemetryProperties {
     // (undocumented)
     [index: string]: TelemetryEventPropertyType | ITaggedTelemetryPropertyType;
 }
 
-// @public @deprecated
+// @public (undocumented)
 export type ReplaceIEventThisPlaceHolder<L extends any[], TThis> = L extends any[] ? {
     [K in keyof L]: L[K] extends IEventThisPlaceHolder ? TThis : L[K];
 } : L;
 
-// @public @deprecated
+// @public (undocumented)
 export type TelemetryEventCategory = "generic" | "error" | "performance";
 
-// @public @deprecated
+// @public (undocumented)
 export type TelemetryEventPropertyType = string | number | boolean | undefined;
 
-// @public @deprecated
+// @public (undocumented)
 export type TransformedEvent<TThis, E, A extends any[]> = (event: E, listener: (...args: ReplaceIEventThisPlaceHolder<A, TThis>) => void) => TThis;
+
+
+// (No @packageDocumentation comment for this package)
 
 ```

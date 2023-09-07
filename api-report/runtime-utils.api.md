@@ -13,6 +13,7 @@ import { IFluidDataStoreRegistry } from '@fluidframework/runtime-definitions';
 import { IFluidHandleContext } from '@fluidframework/core-interfaces';
 import { IFluidRouter } from '@fluidframework/core-interfaces';
 import { IGarbageCollectionData } from '@fluidframework/runtime-definitions';
+import { IGarbageCollectionDetailsBase } from '@fluidframework/runtime-definitions';
 import { IProvideFluidDataStoreRegistry } from '@fluidframework/runtime-definitions';
 import { IRequest } from '@fluidframework/core-interfaces';
 import { IRequestHeader } from '@fluidframework/core-interfaces';
@@ -20,28 +21,28 @@ import { IResponse } from '@fluidframework/core-interfaces';
 import { IRuntime } from '@fluidframework/container-definitions';
 import { IRuntimeFactory } from '@fluidframework/container-definitions';
 import { ISnapshotTree } from '@fluidframework/protocol-definitions';
+import { ISummarizeInternalResult } from '@fluidframework/runtime-definitions';
 import { ISummarizeResult } from '@fluidframework/runtime-definitions';
+import { ISummarizerNode } from '@fluidframework/runtime-definitions';
+import { ISummarizerNodeConfig } from '@fluidframework/runtime-definitions';
+import { ISummarizerNodeConfigWithGC } from '@fluidframework/runtime-definitions';
+import { ISummarizerNodeWithGC } from '@fluidframework/runtime-definitions';
 import { ISummaryBlob } from '@fluidframework/protocol-definitions';
 import { ISummaryStats } from '@fluidframework/runtime-definitions';
 import { ISummaryTree } from '@fluidframework/protocol-definitions';
 import { ISummaryTreeWithStats } from '@fluidframework/runtime-definitions';
-import { ITelemetryContext } from '@fluidframework/runtime-definitions';
+import { ITelemetryLogger } from '@fluidframework/common-definitions';
 import { ITree } from '@fluidframework/protocol-definitions';
-import { SummaryObject } from '@fluidframework/protocol-definitions';
 import { SummaryType } from '@fluidframework/protocol-definitions';
-import { TelemetryEventPropertyType } from '@fluidframework/core-interfaces';
 
 // @public (undocumented)
 export function addBlobToSummary(summary: ISummaryTreeWithStats, key: string, content: string | Uint8Array): void;
 
 // @public (undocumented)
-export function addSummarizeResultToSummary(summary: ISummaryTreeWithStats, key: string, summarizeResult: ISummarizeResult): void;
-
-// @public (undocumented)
 export function addTreeToSummary(summary: ISummaryTreeWithStats, key: string, summarizeResult: ISummarizeResult): void;
 
 // @public (undocumented)
-export function calculateStats(summary: SummaryObject): ISummaryStats;
+export function calculateStats(summary: ISummaryTree): ISummaryStats;
 
 // @public
 export function convertSnapshotTreeToSummaryTree(snapshot: ISnapshotTree): ISummaryTreeWithStats;
@@ -62,35 +63,19 @@ export const create404Response: (request: IRequest) => IResponse;
 export function createDataStoreFactory(type: string, factory: Factory | Promise<Factory>): IFluidDataStoreFactory & IFluidDataStoreRegistry;
 
 // @public (undocumented)
-export function createResponseError(status: number, value: string, request: IRequest, headers?: {
-    [key: string]: any;
-}): IResponse;
+export function createResponseError(status: number, value: string, request: IRequest): IResponse;
+
+// @public
+export const createRootSummarizerNode: (logger: ITelemetryLogger, summarizeInternalFn: (fullTree: boolean) => Promise<ISummarizeInternalResult>, changeSequenceNumber: number, referenceSequenceNumber: number | undefined, config?: ISummarizerNodeConfig) => IRootSummarizerNode;
+
+// @public
+export const createRootSummarizerNodeWithGC: (logger: ITelemetryLogger, summarizeInternalFn: (fullTree: boolean, trackState: boolean) => Promise<ISummarizeInternalResult>, changeSequenceNumber: number, referenceSequenceNumber: number | undefined, config?: ISummarizerNodeConfigWithGC, getGCDataFn?: ((fullGC?: boolean | undefined) => Promise<IGarbageCollectionData>) | undefined, getBaseGCDetailsFn?: (() => Promise<IGarbageCollectionDetailsBase>) | undefined) => IRootSummarizerNodeWithGC;
 
 // @public (undocumented)
 export function exceptionToResponse(err: any): IResponse;
 
 // @public (undocumented)
 export type Factory = IFluidDataStoreFactory & Partial<IProvideFluidDataStoreRegistry>;
-
-// @internal
-export class GCDataBuilder implements IGarbageCollectionData {
-    // (undocumented)
-    addNode(id: string, outboundRoutes: string[]): void;
-    // (undocumented)
-    addNodes(gcNodes: {
-        [id: string]: string[];
-    }): void;
-    addRouteToAllNodes(outboundRoute: string): void;
-    // (undocumented)
-    get gcNodes(): {
-        [id: string]: string[];
-    };
-    // (undocumented)
-    getGCData(): IGarbageCollectionData;
-    prefixAndAddNodes(prefixId: string, gcNodes: {
-        [id: string]: string[];
-    }): void;
-}
 
 // @public
 export function generateHandleContextPath(path: string, routeContext?: IFluidHandleContext): string;
@@ -102,7 +87,27 @@ export function getBlobSize(content: ISummaryBlob["content"]): number;
 export function getNormalizedObjectStoragePathParts(path: string): string[];
 
 // @public (undocumented)
-export function listBlobsAtTreePath(inputTree: ITree | undefined, path: string): Promise<string[]>;
+export interface IRootSummarizerNode extends ISummarizerNode, ISummarizerNodeRootContract {
+}
+
+// @public (undocumented)
+export interface IRootSummarizerNodeWithGC extends ISummarizerNodeWithGC, ISummarizerNodeRootContract {
+}
+
+// @public (undocumented)
+export interface ISummarizerNodeRootContract {
+    // (undocumented)
+    clearSummary(): void;
+    // (undocumented)
+    completeSummary(proposalHandle: string): void;
+    // (undocumented)
+    refreshLatestSummary(proposalHandle: string | undefined, summaryRefSeq: number, getSnapshot: () => Promise<ISnapshotTree>, readAndParseBlob: ReadAndParseBlob, correlatedSummaryLogger: ITelemetryLogger): Promise<RefreshSummaryResult>;
+    // (undocumented)
+    startSummary(referenceSequenceNumber: number, summaryLogger: ITelemetryLogger): void;
+}
+
+// @public (undocumented)
+export function listBlobsAtTreePath(inputTree: ITree, path: string): Promise<string[]>;
 
 // @public
 export function mergeStats(...stats: ISummaryStats[]): ISummaryStats;
@@ -116,10 +121,22 @@ export class ObjectStoragePartition implements IChannelStorageService {
     list(path: string): Promise<string[]>;
     // (undocumented)
     readBlob(path: string): Promise<ArrayBufferLike>;
-}
+    }
 
 // @public
 export type ReadAndParseBlob = <T>(id: string) => Promise<T>;
+
+// @public
+export type RefreshSummaryResult = {
+    latestSummaryUpdated: false;
+} | {
+    latestSummaryUpdated: true;
+    wasSummaryTracked: true;
+} | {
+    latestSummaryUpdated: true;
+    wasSummaryTracked: false;
+    snapshot: ISnapshotTree;
+};
 
 // @public (undocumented)
 export function requestFluidObject<T = FluidObject>(router: IFluidRouter, url: string | IRequest): Promise<T>;
@@ -153,7 +170,7 @@ export abstract class RuntimeFactoryHelper<T = IContainerRuntime> implements IRu
     // (undocumented)
     instantiateFromExisting(_runtime: T): Promise<void>;
     // (undocumented)
-    instantiateRuntime(context: IContainerContext, existing: boolean): Promise<IRuntime>;
+    instantiateRuntime(context: IContainerContext, existing?: boolean): Promise<IRuntime>;
     // (undocumented)
     get IRuntimeFactory(): this;
     // (undocumented)
@@ -180,25 +197,11 @@ export class SummaryTreeBuilder implements ISummaryTreeWithStats {
     get stats(): Readonly<ISummaryStats>;
     // (undocumented)
     get summary(): ISummaryTree;
-}
-
-// @public (undocumented)
-export class TelemetryContext implements ITelemetryContext {
-    // (undocumented)
-    get(prefix: string, property: string): TelemetryEventPropertyType;
-    // (undocumented)
-    serialize(): string;
-    // (undocumented)
-    set(prefix: string, property: string, value: TelemetryEventPropertyType): void;
-    // (undocumented)
-    setMultiple(prefix: string, property: string, values: Record<string, TelemetryEventPropertyType>): void;
-}
-
-// @public
-export function unpackChildNodesUsedRoutes(usedRoutes: string[]): Map<string, string[]>;
+    }
 
 // @public (undocumented)
 export function utf8ByteLength(str: string): number;
+
 
 // (No @packageDocumentation comment for this package)
 

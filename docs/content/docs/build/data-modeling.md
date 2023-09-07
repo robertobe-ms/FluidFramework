@@ -1,6 +1,6 @@
 ---
 title: Data modeling
-menuPosition: 5
+menuPosition: 3
 author: skylerjokiel
 editor: tylerbutler
 ---
@@ -21,12 +21,11 @@ Your code must define at least one `initialObject`. In many cases one or more in
 
 ### Example usage
 
-The example below creates a new container with a `SharedMap` and a `SharedCell` as `initialObjects`.
+The example below creates a new container with a `SharedMap` and a `SharedCell` as `initialObjects`. About this code note:
 
-About this code note:
-
--   `client` represents an object defined by the service-specific client library. See the documentation for the service you are using for more details about how to use its service-specific client library.
--   It is a good practice to deconstruct the object that is returned by `createContainer` into its two main parts; `container` and `services`. For an example of the use of the latter, see [Working with the audience]({{< relref "audience.md#working-with-the-audience" >}}).
+- `client` represents an object defined by the service-specific client library. See the documentation for the service you are using for more details about how to use its service-specific client library.
+- The placeholder `/*service config*/` stands for a service-specific configuration object.
+- It is a good practice to deconstruct the object that is returned by `createContainer` into its two main parts; `container` and `services`. For an example of the use of the latter, see [Working with the audience]({{< relref "audience.md#working-with-the-audience" >}}).
 
 ```typescript
 const schema = {
@@ -53,12 +52,6 @@ retrieve it.
 
 A `FluidContainer` object has a `create` function that takes a shared object type (that is, a distributed data structure (DDS) type
 or a Data Object type) and returns a new shared object. But only shared object types that are specified in the schema's `dynamicObjectTypes` array can be dynamically created.
-
-{{< callout note >}}
-
-Data Objects are currently beta and should not be used in production applications.
-
-{{< /callout >}}
 
 Dynamically created objects are local only (in-memory) and cannot be shared with other clients unless a reference to each of them is stored in a connected shared object.
 
@@ -93,7 +86,7 @@ All shared objects supported by Fluid have a `handle` property that can be used 
 
 Dynamically created objects need to be stored on an already connected shared object, so the most common case is to store references to them in an initial object property, because initial objects are connected on creation. However, you can also store dynamic objects in other connected dynamic objects. In this sense shared objects are arbitrarily nestable. But the hierarchy of referenced objects must rest in an initial object that holds the references to the first level of dynamic objects. So, there is always at least one initial object in every container.
 
-When retrieving dynamically created objects, your code needs to first get the object's handle then get the object from the handle. This reference-based approach enables the Fluid Framework to virtualize the data underneath, only loading objects when they are requested.
+When retrieving dynamically created objects your code needs to first get the object's handle then get the object from the handle. This reference based approach enables the Fluid Framework to virtualize the data underneath, only loading objects when they are requested.
 
 The following example demonstrates dynamically creating a `SharedCell` and storing it in the `SharedMap` initial object
 using the handle. It also demonstrates retrieving the `SharedCell` object from the `SharedMap` and listening for the new
@@ -139,42 +132,25 @@ For more information about handles see [Handles]({{< relref "handles.md" >}}).
 
 Dynamic objects are more difficult to work with than initial objects, but are especially valuable in two scenarios:
 
--   When the app has a very large data set. Because dynamic objects are loaded into memory on demand, using them can reduce boot time of your application by delaying when the objects are loaded.
--   When the data needed by the app will vary depending on choices made by the user. Dynamic objects are also not strictly defined in the container schema. This enables your app to create containers with flexible, user-generated schemas.
+- When the app has a very large data set. Because dynamic objects are loaded into memory on demand, using them can reduce boot time of your application by delaying when the objects are loaded.
+- When the data needed by the app will vary depending on choices made by the user. Dynamic objects are also not strictly defined in the container schema. This enables your app to create containers with flexible, user-generated schemas.
 
 An example where this is useful is building a collaborative storyboarding application. In this scenario, you can have a large number of individual boards that make up the storyboard. By using a dynamic shared object for each board your code can load the boards on demand as the user accesses them, instead of having to load them all in memory at once.
 
-<!-- AUTO-GENERATED-CONTENT:START (INCLUDE:path=../../../_includes/links.md) -->
-
-<!-- prettier-ignore-start -->
-<!-- NOTE: This section is automatically generated by embedding the referenced file contents. Do not update these generated contents directly. -->
-
+<!-- AUTO-GENERATED-CONTENT:START (INCLUDE:path=docs/_includes/links.md) -->
 <!-- Links -->
 
 <!-- Concepts -->
 
 [Fluid container]: {{< relref "containers.md" >}}
-[Signals]: {{< relref "/docs/concepts/signals.md" >}}
 
-<!-- Distributed Data Structures -->
+<!-- Classes and interfaces -->
 
+[FluidContainer]: {{< relref "fluidcontainer.md" >}}
+[IFluidContainer]: {{< relref "ifluidcontainer.md" >}}
 [SharedCounter]: {{< relref "/docs/data-structures/counter.md" >}}
 [SharedMap]: {{< relref "/docs/data-structures/map.md" >}}
-[SharedString]: {{< relref "/docs/data-structures/string.md" >}}
-[Sequences]:  {{< relref "/docs/data-structures/sequences.md" >}}
-
-<!-- API links -->
-
-[fluid-framework]: {{< relref "/docs/apis/fluid-framework.md" >}}
-[@fluidframework/azure-client]: {{< relref "/docs/apis/azure-client.md" >}}
-[@fluidframework/tinylicious-client]: {{< relref "/docs/apis/tinylicious-client.md" >}}
-
-[AzureClient]: {{< relref "/docs/apis/azure-client/AzureClient-class.md" >}}
-[TinyliciousClient]: {{< relref "/docs/apis/tinylicious-client/TinyliciousClient-class.md" >}}
-
-[FluidContainer]: {{< relref "/docs/apis/fluid-static/fluidcontainer-class.md" >}}
-[IFluidContainer]: {{< relref "/docs/apis/fluid-static/ifluidcontainer-interface.md" >}}
-
-<!-- prettier-ignore-end -->
+[SharedSequence]: {{< relref "sequences.md" >}}
+[SharedString]: {{< relref "string.md" >}}
 
 <!-- AUTO-GENERATED-CONTENT:END -->

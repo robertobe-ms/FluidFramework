@@ -4,8 +4,10 @@
  */
 
 module.exports = {
-	extends: [require.resolve("@fluidframework/eslint-config-fluid/minimal"), "prettier"],
-	rules: {
-		"@typescript-eslint/strict-boolean-expressions": "off",
-	},
-};
+    "extends": [
+        "@fluidframework/eslint-config-fluid"
+    ],
+    "rules": {
+        "@typescript-eslint/strict-boolean-expressions": "off",
+    }
+}

@@ -6,13 +6,11 @@
 
 import { ContainerSchema } from '@fluidframework/fluid-static';
 import { IClient } from '@fluidframework/protocol-definitions';
-import { ICompressionStorageConfig } from '@fluidframework/driver-utils';
-import { IConfigProviderBase } from '@fluidframework/telemetry-utils';
 import { IFluidContainer } from '@fluidframework/fluid-static';
 import { IMember } from '@fluidframework/fluid-static';
 import { IServiceAudience } from '@fluidframework/fluid-static';
-import { ITelemetryBaseEvent } from '@fluidframework/core-interfaces';
-import { ITelemetryBaseLogger } from '@fluidframework/core-interfaces';
+import { ITelemetryBaseEvent } from '@fluidframework/common-definitions';
+import { ITelemetryBaseLogger } from '@fluidframework/common-definitions';
 import { ITokenClaims } from '@fluidframework/protocol-definitions';
 import { ITokenProvider } from '@fluidframework/routerlicious-driver';
 import { ITokenResponse } from '@fluidframework/routerlicious-driver';
@@ -20,19 +18,15 @@ import { IUser } from '@fluidframework/protocol-definitions';
 import { ScopeType } from '@fluidframework/protocol-definitions';
 import { ServiceAudience } from '@fluidframework/fluid-static';
 
-// @public
+// @public (undocumented)
 export class AzureAudience extends ServiceAudience<AzureMember> implements IAzureAudience {
-    // @internal
+    // @internal (undocumented)
     protected createServiceMember(audienceMember: IClient): AzureMember;
 }
 
 // @public
 export class AzureClient {
     constructor(props: AzureClientProps);
-    copyContainer(id: string, containerSchema: ContainerSchema, version?: AzureContainerVersion): Promise<{
-        container: IFluidContainer;
-        services: AzureContainerServices;
-    }>;
     createContainer(containerSchema: ContainerSchema): Promise<{
         container: IFluidContainer;
         services: AzureContainerServices;
@@ -41,27 +35,21 @@ export class AzureClient {
         container: IFluidContainer;
         services: AzureContainerServices;
     }>;
-    getContainerVersions(id: string, options?: AzureGetVersionsOptions): Promise<AzureContainerVersion[]>;
-}
+    }
 
 // @public
 export interface AzureClientProps {
-    readonly configProvider?: IConfigProviderBase;
-    readonly connection: AzureRemoteConnectionConfig | AzureLocalConnectionConfig;
+    readonly connection: AzureConnectionConfig;
     readonly logger?: ITelemetryBaseLogger;
-    // (undocumented)
-    readonly summaryCompression?: boolean | ICompressionStorageConfig;
 }
 
 // @public
 export interface AzureConnectionConfig {
-    endpoint: string;
+    orderer: string;
+    storage: string;
+    tenantId: "local" | string;
     tokenProvider: ITokenProvider;
-    type: AzureConnectionConfigType;
 }
-
-// @public
-export type AzureConnectionConfigType = "local" | "remote";
 
 // @public
 export interface AzureContainerServices {
@@ -69,46 +57,20 @@ export interface AzureContainerServices {
 }
 
 // @public
-export interface AzureContainerVersion {
-    date?: string;
-    id: string;
-}
-
-// @public @deprecated
 export class AzureFunctionTokenProvider implements ITokenProvider {
     constructor(azFunctionUrl: string, user?: Pick<AzureMember<any>, "userId" | "userName" | "additionalDetails"> | undefined);
     // (undocumented)
     fetchOrdererToken(tenantId: string, documentId?: string): Promise<ITokenResponse>;
     // (undocumented)
     fetchStorageToken(tenantId: string, documentId: string): Promise<ITokenResponse>;
-}
-
-// @public
-export interface AzureGetVersionsOptions {
-    maxCount: number;
-}
-
-// @public
-export interface AzureLocalConnectionConfig extends AzureConnectionConfig {
-    type: "local";
-}
+    }
 
 // @public
 export interface AzureMember<T = any> extends IMember {
+    // (undocumented)
     additionalDetails?: T;
+    // (undocumented)
     userName: string;
-}
-
-// @public
-export interface AzureRemoteConnectionConfig extends AzureConnectionConfig {
-    tenantId: string;
-    type: "remote";
-}
-
-// @public
-export interface AzureUser<T = any> extends IUser {
-    additionalDetails?: T;
-    name: string;
 }
 
 // @public
@@ -126,6 +88,10 @@ export { ITokenResponse }
 
 export { IUser }
 
+// @public
+export const LOCAL_MODE_TENANT_ID = "local";
+
 export { ScopeType }
+
 
 ```

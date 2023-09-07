@@ -3,10 +3,9 @@
  * Licensed under the MIT License.
  */
 
-import { IsoBuffer } from '@fluid-internal/client-utils';
+import { IsoBuffer } from '@fluidframework/common-utils';
 import { TestObjectProvider } from '@fluidframework/test-utils';
 import { expect } from 'chai';
-import { fail } from '../../Common';
 import { Definition, EditId, SessionId, TraitLabel } from '../../Identifiers';
 import { Change, StablePlace, StableRange } from '../../ChangeTypes';
 import { SharedTree } from '../../SharedTree';
@@ -42,7 +41,7 @@ const summarySizeTests: SummarySizeTestEntry[] = [
 		edits: (testTree) => [
 			Change.insertTree(testTree.buildLeaf(), StablePlace.atEndOf(testTree.right.traitLocation)),
 		],
-		expectedSize: 1163,
+		expectedSize: 1075,
 		description: 'when inserting a node',
 	},
 	{
@@ -53,7 +52,7 @@ const summarySizeTests: SummarySizeTestEntry[] = [
 			}
 			return edits;
 		},
-		expectedSize: 12924,
+		expectedSize: 10680,
 		description: 'with 50 inserts',
 	},
 	{
@@ -64,7 +63,7 @@ const summarySizeTests: SummarySizeTestEntry[] = [
 				[Change.setPayload(node.identifier, 10)],
 			];
 		},
-		expectedSize: 1302,
+		expectedSize: 1170,
 		description: 'when inserting and setting a node',
 	},
 	{
@@ -75,14 +74,14 @@ const summarySizeTests: SummarySizeTestEntry[] = [
 				[Change.delete(StableRange.only(node))],
 			];
 		},
-		expectedSize: 1355,
+		expectedSize: 1223,
 		description: 'when inserting and deleting a node',
 	},
 	{
 		edits: (testTree) => [
 			Change.insertTree(testTree.buildLeaf(), StablePlace.atEndOf(testTree.right.traitLocation)),
 		],
-		expectedSize: 1355,
+		expectedSize: 1223,
 		description: 'when inserting and reverting a node',
 		revertEdits: true,
 	},
@@ -90,7 +89,7 @@ const summarySizeTests: SummarySizeTestEntry[] = [
 		edits: (testTree) => [
 			Change.insertTree(makeLargeTestTree(testTree), StablePlace.atStartOf(testTree.right.traitLocation)),
 		],
-		expectedSize: 77067,
+		expectedSize: 76979,
 		description: 'when inserting a large tree',
 	},
 	{
@@ -101,7 +100,7 @@ const summarySizeTests: SummarySizeTestEntry[] = [
 				Change.move(StableRange.only(largeTree), StablePlace.atEndOf(testTree.left.traitLocation)),
 			];
 		},
-		expectedSize: 77375,
+		expectedSize: 77243,
 		description: 'when inserting and moving a large tree',
 	},
 ];
@@ -143,10 +142,8 @@ export function runSummarySizeTests(
 			if (revertEdits) {
 				for (let i = changes.length - 1; i >= 0; i--) {
 					const editIndex = tree.edits.getIndexOfId(edits[i].id);
-					const edit =
-						(tree.edits.tryGetEditAtIndex(editIndex) as unknown as Edit<ChangeInternal>) ??
-						fail('edit not found');
-					const reverted = revert(edit.changes, tree.logViewer.getRevisionViewInMemory(editIndex));
+					const edit = tree.edits.getEditInSessionAtIndex(editIndex) as unknown as Edit<ChangeInternal>;
+					const reverted = revert(edit.changes, tree.logViewer.getRevisionViewInSession(editIndex));
 					if (reverted !== undefined) {
 						tree.applyEditInternal(reverted);
 					}

@@ -17,9 +17,9 @@ Because building low-latency, collaborative experiences is hard!
 
 Fluid Framework offers:
 
-*   Client-centric application model with data persistence requiring no custom server code.
-*   Distributed data structures with familiar programming patterns.
-*   Very low latency.
+* Client-centric application model with data persistence requiring no custom server code.
+* Distributed data structures with familiar programming patterns.
+* Very low latency.
 
 The developers at Microsoft have built collaboration into many applications, but many required application specific
 server-side logic to manage the collaborative experience. The Fluid Framework is the result of Microsoft's investment
@@ -35,9 +35,9 @@ Applications built with Fluid Framework require zero custom code on the server t
 scenarios such as real-time typing across text editors. Client developers can focus on customer experiences while
 letting Fluid do the work of keeping data in sync.
 
-Fluid Framework works with your application framework of choice.
-Whether you prefer plain JavaScript or a framework like [React](https://react.dev), [Angular](https://angular.io),
-or [Vue](https://vuejs.org), Fluid Framework makes building collaborative experiences simple and flexible.
+Fluid Framework works with your application framework of choice. Whether you prefer straight JavaScript or
+a framework like React, Angular, or Vue, Fluid Framework makes building collaborative experiences simple and
+flexible.
 
 ## How Fluid works
 
@@ -52,11 +52,22 @@ accurately produce the current state regardless of the order it receives operati
 
 The following is a typical flow.
 
-1. Client code changes data locally.
-2. Fluid runtime sends that change to the Fluid service.
-3. Fluid service sequences that operation and broadcasts it to all clients.
-4. Fluid runtime incorporates that operation into local data and raises a "valueChanged" event.
-5. Client code handles that event (updates view, runs business logic).
+* Client code changes data locally.
+* Fluid runtime sends that change to the Fluid service.
+* Fluid service sequences that operation and broadcasts it to all clients.
+* Fluid runtime incorporates that operation into local data and raises a "valueChanged" event.
+* Client code handles that event (updates view, runs business logic).
+
+## Getting to version 1.0
+
+The core technology powering Fluid Framework is mature and stable. However, the layers built on top of that
+foundation are still a work in progress. Over the coming months we will be evolving APIs, adding new features,
+and working to further simplify using the framework. These changes are driven by Microsoft's use of
+Fluid internally as well as by requirements we are gathering from developers currently building on Fluid.
+
+Fluid Framework is not ready to power production-quality solutions yet. But we are excited to open source it now
+to give developers an opportunity to explore, learn, and contribute both through feedback and through direct
+participation.
 
 ## Next steps
 

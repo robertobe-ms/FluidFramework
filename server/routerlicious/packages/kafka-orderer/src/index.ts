@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { KafkaOrderer, KafkaOrdererConnection, KafkaOrdererFactory } from "./kafkaOrderer";
+export * from "./kafkaOrderer";

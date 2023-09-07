@@ -18,8 +18,7 @@ And then mount it for development by running.
 When mounted for development you'll want to run the following commands. These also work if you would like to
 develop outside of the container.
 
-`npm install -g pnpm`
-`pnpm i`
+`npm install`
 `npm run build`
 
 Alternatively, for development, start a mounted container using
@@ -36,11 +35,10 @@ docker-compose restart historian
 ```
 
 To run in combination with Routerlicious for easy end-to-end testing
-
 1. Comment out all services in `historian/docker-compose.yml` except for historian, then save.
 2. Comment out the historian service within `routerlicious/docker-compose.yml`, then save
-3. Start Routerlicious by following instructions within `server/routerlicious/README.md`.
-4. Run `npm run start:dev` from historian.
+2. Start Routerlicious by following instructions within `server/routerlicious/README.md`.
+3. Run `npm run start:dev` from historian.
 
 ## Compose
 

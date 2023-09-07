@@ -3,5 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { DocumentDeltaConnection } from "./documentDeltaConnection";
-export { getW3CData, promiseRaceWithWinner, validateMessages } from "./driverUtils";
+export * from "./documentDeltaConnection";

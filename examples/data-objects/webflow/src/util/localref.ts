@@ -3,35 +3,35 @@
  * Licensed under the MIT License.
  */
 
-import { LocalReferencePosition } from "@fluidframework/merge-tree";
-import { debug } from "../document/debug.js";
-import { FlowDocument } from "../document/index.js";
+import { LocalReference } from "@fluidframework/merge-tree";
+import { debug } from "../document/debug";
+import { FlowDocument } from "../document/index";
 
-export function updateRef(doc: FlowDocument, ref: LocalReferencePosition, position: number) {
-	if (isNaN(position)) {
-		debug(`      ${position} (ignored)`);
-		return ref;
-	}
+export function updateRef(doc: FlowDocument, ref: LocalReference, position: number) {
+    if (isNaN(position)) {
+        debug(`      ${position} (ignored)`);
+        return ref;
+    }
 
-	if (!ref) {
-		debug(`      ${position} (new ref)`);
-		return doc.addLocalRef(position);
-	}
+    if (!ref) {
+        debug(`      ${position} (new ref)`);
+        return doc.addLocalRef(position);
+    }
 
-	const oldPosition = doc.localRefToPosition(ref);
-	if (!(position !== oldPosition)) {
-		debug(`      ${position} (unchanged)`);
-		return ref;
-	}
+    const oldPosition = doc.localRefToPosition(ref);
+    if (!(position !== oldPosition)) {
+        debug(`      ${position} (unchanged)`);
+        return ref;
+    }
 
-	debug(`      ${position} (was: ${oldPosition})`);
+    debug(`      ${position} (was: ${oldPosition})`);
 
-	doc.removeLocalRef(ref);
-	return doc.addLocalRef(position);
+    doc.removeLocalRef(ref);
+    return doc.addLocalRef(position);
 }
 
-export function extractRef(doc: FlowDocument, ref: LocalReferencePosition) {
-	const position = doc.localRefToPosition(ref);
-	doc.removeLocalRef(ref);
-	return position;
+export function extractRef(doc: FlowDocument, ref: LocalReference) {
+    const position = doc.localRefToPosition(ref);
+    doc.removeLocalRef(ref);
+    return position;
 }

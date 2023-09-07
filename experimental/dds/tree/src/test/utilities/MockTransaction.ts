@@ -16,7 +16,6 @@ import {
 /**
  * @internal
  */
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace MockTransaction {
 	export interface Options {
 		statusOnClose: EditStatus;

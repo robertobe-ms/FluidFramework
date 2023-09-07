@@ -3,51 +3,38 @@
  * Licensed under the MIT License.
  */
 
-import { List, walkList } from "./collections";
-import { ISegment, SegmentGroup } from "./mergeTreeNodes";
+import { List, ListMakeHead } from "./collections";
+import { ISegment, SegmentGroup } from "./mergeTree";
 
 export class SegmentGroupCollection {
-	private readonly segmentGroups: List<SegmentGroup>;
+    private readonly segmentGroups: List<SegmentGroup>;
 
-	constructor(private readonly segment: ISegment) {
-		this.segmentGroups = new List<SegmentGroup>();
-	}
+    constructor(private readonly segment: ISegment) {
+        this.segmentGroups = ListMakeHead<SegmentGroup>();
+    }
 
-	public get size() {
-		return this.segmentGroups.length;
-	}
+    public get size() {
+        return this.segmentGroups.count();
+    }
 
-	public get empty() {
-		return this.segmentGroups.empty;
-	}
+    public get empty() {
+        return this.segmentGroups.empty();
+    }
 
-	public enqueue(segmentGroup: SegmentGroup) {
-		this.segmentGroups.push(segmentGroup);
-		segmentGroup.segments.push(this.segment);
-	}
+    public enqueue(segmentGroup: SegmentGroup) {
+        this.segmentGroups.enqueue(segmentGroup);
+        segmentGroup.segments.push(this.segment);
+    }
 
-	public dequeue(): SegmentGroup | undefined {
-		return this.segmentGroups.shift()?.data;
-	}
+    public dequeue(): SegmentGroup | undefined {
+        return this.segmentGroups.dequeue();
+    }
 
-	public pop?(): SegmentGroup | undefined {
-		return this.segmentGroups.pop ? this.segmentGroups.pop()?.data : undefined;
-	}
+    public clear() {
+        this.segmentGroups.clear();
+    }
 
-	public copyTo(segment: ISegment) {
-		walkList(this.segmentGroups, (sg) =>
-			segment.segmentGroups.enqueueOnCopy(sg.data, this.segment),
-		);
-	}
-
-	private enqueueOnCopy(segmentGroup: SegmentGroup, sourceSegment: ISegment) {
-		this.enqueue(segmentGroup);
-		if (segmentGroup.previousProps) {
-			// duplicate the previousProps for this segment
-			const index = segmentGroup.segments.indexOf(sourceSegment);
-			if (index !== -1) {
-				segmentGroup.previousProps.push(segmentGroup.previousProps[index]);
-			}
-		}
-	}
+    public copyTo(segment: ISegment) {
+        this.segmentGroups.walk((sg) => segment.segmentGroups.enqueue(sg));
+    }
 }

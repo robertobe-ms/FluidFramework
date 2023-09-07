@@ -4,7 +4,7 @@
 
 ```ts
 
-import { Deferred } from '@fluidframework/core-utils';
+import { Deferred } from '@fluidframework/common-utils';
 import { IDocumentService } from '@fluidframework/driver-definitions';
 import { IDocumentServiceFactory } from '@fluidframework/driver-definitions';
 import { IDocumentStorageService } from '@fluidframework/driver-definitions';
@@ -13,6 +13,7 @@ import { ISnapshotTree } from '@fluidframework/protocol-definitions';
 import { IVersion } from '@fluidframework/protocol-definitions';
 import { ReadDocumentStorageServiceBase } from '@fluidframework/replay-driver';
 import { ReplayController } from '@fluidframework/replay-driver';
+import { ReplayDocumentServiceFactory } from '@fluidframework/replay-driver';
 
 // @public (undocumented)
 export class DebuggerUI {
@@ -127,7 +128,7 @@ export class DebugReplayController extends ReplayController implements IDebugger
 export namespace FluidDebugger {
     export function createFromService(documentService: IDocumentService): Promise<IDocumentService>;
     // (undocumented)
-    export function createFromServiceFactory(documentServiceFactory: IDocumentServiceFactory): Promise<IDocumentServiceFactory>;
+    export function createFromServiceFactory(documentServiceFactory: IDocumentServiceFactory): Promise<IDocumentServiceFactory | ReplayDocumentServiceFactory>;
 }
 
 // @public (undocumented)
@@ -150,6 +151,7 @@ export interface IDebuggerUI {
     updateVersionText(versionsLeft: number): void;
     versionSelected(seqNumber: number, version: IVersion | string): void;
 }
+
 
 // (No @packageDocumentation comment for this package)
 

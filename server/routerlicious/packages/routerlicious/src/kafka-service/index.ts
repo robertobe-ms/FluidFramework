@@ -9,6 +9,5 @@ import { OrderingResourcesFactory } from "@fluidframework/server-routerlicious-b
 import { execute } from "./command";
 
 execute(
-	(name: string, lambda: string) => new OrderingResourcesFactory(name, lambda),
-	path.join(__dirname, "../../config/config.json"),
-);
+    (name: string, lambda: string) => new OrderingResourcesFactory(name, lambda),
+    path.join(__dirname, "../../config/config.json"));

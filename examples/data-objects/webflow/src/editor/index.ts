@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { Editor } from "./editor.js";
+export { Editor } from "./editor";

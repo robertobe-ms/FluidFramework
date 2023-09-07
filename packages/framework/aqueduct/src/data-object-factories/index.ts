@@ -3,5 +3,5 @@
  * Licensed under the MIT License.
  */
 
-export { DataObjectFactory } from "./dataObjectFactory";
-export { IRootDataObjectFactory, PureDataObjectFactory } from "./pureDataObjectFactory";
+export * from "./dataObjectFactory";
+export * from "./pureDataObjectFactory";

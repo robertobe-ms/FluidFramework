@@ -45,15 +45,6 @@ export interface TreeLeave {
 	index: number;
 }
 
-/** Applies an edit after disconnecting the container, then rejoins */
-export interface TreeStash {
-	type: 'stash';
-	contents: FuzzChange;
-	summarizeHistory: boolean;
-	writeFormat: WriteFormat;
-	index: number;
-}
-
 export interface Synchronize {
 	type: 'synchronize';
 }
@@ -69,7 +60,7 @@ export interface Synchronize {
  * Future potential work:
  * - More fine-grained control of summarization processes
  */
-export type Operation = TreeEdit | TreeJoin | TreeLeave | TreeStash | Synchronize;
+export type Operation = TreeEdit | TreeJoin | TreeLeave | Synchronize;
 
 export interface FuzzInsert {
 	fuzzType: 'insert';
@@ -137,14 +128,12 @@ export interface JoinGenerationConfig {
 export interface OperationGenerationConfig {
 	editConfig?: EditGenerationConfig;
 	joinConfig?: JoinGenerationConfig;
-	/** default: 100 */
+	/** default: 10 */
 	editWeight?: number;
-	/** default: 10 */
+	/** default: 1 */
 	joinWeight?: number;
-	/** default: 10 */
+	/** default: 1 */
 	leaveWeight?: number;
 	/** default: 1 */
-	stashWeight?: number;
-	/** default: 10 */
 	synchronizeWeight?: number;
 }

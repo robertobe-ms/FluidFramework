@@ -3,32 +3,19 @@
  * Licensed under the MIT License.
  */
 
-import { assert } from "@fluidframework/core-utils";
 import { ServiceAudience } from "@fluidframework/fluid-static";
 import { IClient } from "@fluidframework/protocol-definitions";
-import { ITinyliciousAudience, TinyliciousMember, TinyliciousUser } from "./interfaces";
+import { ITinyliciousAudience, TinyliciousMember } from "./interfaces";
 
-/**
- * {@inheritDoc ITinyliciousAudience}
- */
-export class TinyliciousAudience
-	extends ServiceAudience<TinyliciousMember>
-	implements ITinyliciousAudience
-{
-	/**
-	 * @internal
-	 */
-	protected createServiceMember(audienceMember: IClient): TinyliciousMember {
-		const tinyliciousUser = audienceMember.user as TinyliciousUser;
-		assert(
-			tinyliciousUser !== undefined && typeof tinyliciousUser.name === "string",
-			0x313 /* Specified user was not of type "TinyliciousUser". */,
-		);
-
-		return {
-			userId: tinyliciousUser.id,
-			userName: tinyliciousUser.name,
-			connections: [],
-		};
-	}
+export class TinyliciousAudience extends ServiceAudience<TinyliciousMember> implements ITinyliciousAudience {
+  /**
+   * @internal
+   */
+  protected createServiceMember(audienceMember: IClient): TinyliciousMember {
+    return {
+      userId: audienceMember.user.id,
+      userName: (audienceMember.user as any).name,
+      connections: [],
+    };
+  }
 }

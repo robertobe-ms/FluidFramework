@@ -3,19 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { IGCTestProvider, runGCTests } from "./gcTestRunner";
-export {
-	AddClient,
-	BaseOperation,
-	ChangeConnectionState,
-	Client,
-	ClientSpec,
-	createDDSFuzzSuite,
-	DDSFuzzModel,
-	DDSFuzzSuiteOptions,
-	DDSFuzzTestState,
-	defaultDDSFuzzSuiteOptions,
-	DDSFuzzHarnessEvents,
-	Synchronize,
-	replayTest,
-} from "./ddsFuzzHarness";
+export * from "./gcTestRunner";

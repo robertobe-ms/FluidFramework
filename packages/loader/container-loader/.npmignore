@@ -4,5 +4,3 @@ nyc
 src/test
 dist/test
 **/_api-extractor-temp/**
-
-closeAndGetPendingLocalState.md

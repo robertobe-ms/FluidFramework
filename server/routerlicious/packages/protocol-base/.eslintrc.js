@@ -4,12 +4,13 @@
  */
 
 module.exports = {
-	extends: [require.resolve("@fluidframework/eslint-config-fluid/minimal"), "prettier"],
-	rules: {
-		"@typescript-eslint/no-floating-promises": "off",
-		"@typescript-eslint/no-use-before-define": "off",
-		"@typescript-eslint/strict-boolean-expressions": "off",
-		"no-case-declarations": "off",
-		"promise/catch-or-return": ["error", { allowFinally: true }],
-	},
-};
+    extends: [
+        "@fluidframework/eslint-config-fluid",
+    ],
+    rules: {
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/no-use-before-define": "off",
+        "@typescript-eslint/strict-boolean-expressions": "off",
+        "no-case-declarations": "off"
+    }
+}

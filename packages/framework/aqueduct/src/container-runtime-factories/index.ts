@@ -3,5 +3,5 @@
  * Licensed under the MIT License.
  */
 
-export { BaseContainerRuntimeFactory } from "./baseContainerRuntimeFactory";
-export { ContainerRuntimeFactoryWithDefaultDataStore } from "./containerRuntimeFactoryWithDefaultDataStore";
+export * from "./baseContainerRuntimeFactory";
+export * from "./containerRuntimeFactoryWithDefaultDataStore";

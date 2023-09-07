@@ -3,8 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export {
-	defaultFluidObjectRequestHandler,
-	defaultRouteRequestHandler,
-	mountableViewRequestHandler,
-} from "./requestHandlers";
+export * from "./requestHandlers";

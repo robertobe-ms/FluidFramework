@@ -222,7 +222,11 @@ export class SimpleTestTree implements TestTree {
 	public buildLeaf(id: NodeId, payload?: Payload): LeafNode<ChangeNode>;
 
 	public buildLeaf(id?: NodeId, payload?: Payload): LeafNode<BuildTreeNode> | LeafNode<ChangeNode> {
-		return id === undefined ? buildLeaf(undefined, payload) : buildLeaf(id, payload);
+		if (id === undefined) {
+			return buildLeaf(undefined, payload);
+		} else {
+			return buildLeaf(id, payload);
+		}
 	}
 
 	public buildLeafInternal(id?: NodeId, payload?: Payload): LeafNode<TreeNode<BuildNodeInternal, NodeId>> {
@@ -331,7 +335,11 @@ export class RefreshingTestTree<T extends TestTree> implements TestTree {
 	public buildLeaf(id?: undefined, payload?: Payload): LeafNode<BuildTreeNode>;
 	public buildLeaf(id: NodeId, payload?: Payload): LeafNode<ChangeNode>;
 	public buildLeaf(id?: NodeId, payload?: Payload): LeafNode<BuildTreeNode> | LeafNode<ChangeNode> {
-		return id === undefined ? this.testTree.buildLeaf(undefined, payload) : this.testTree.buildLeaf(id, payload);
+		if (id === undefined) {
+			return this.testTree.buildLeaf(undefined, payload);
+		} else {
+			return this.testTree.buildLeaf(id, payload);
+		}
 	}
 
 	public buildLeafInternal(id?: NodeId, payload?: Payload): LeafNode<TreeNode<BuildNodeInternal, NodeId>> {

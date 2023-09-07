@@ -10,68 +10,92 @@
  * file.
  */
 
-/**
- * An array of objects describing how members should be combined.
- *
- * This can be considered a workaround simulating API-Extractor's
- * {@link https://api-extractor.com/pages/configs/api-extractor_json/#bundledpackages | bundledPackages} feature,
- * which currently has at least one issue preventing us from using it.
- *
- * See this issue for more details: {@link https://github.com/microsoft/rushstack/issues/3521}.
- *
- * Once that issue is resolved, we probably want to just leverage package bundling, instead of directly
- * editing the API reports.
- *
- */
+/** An array of all packages whose TSDocs should be published to website. */
+const websitePackages = [
+    "fluid-framework",
+    "tinylicious",
+    "@fluidframework/azure-client",
+    "@fluidframework/azure-service-utils",
+    "@fluidframework/container-definitions",
+    "@fluidframework/map",
+    "@fluidframework/sequence",
+    "@fluidframework/fluid-static",
+    "@fluidframework/test-client-utils",
+    "@fluidframework/tinylicious-client",
+];
+
+/** An array of objects describing how members should be combined. */
 const memberCombineInstructions = [
-	{
-		package: "@fluidframework/azure-client",
-		sourceImports: new Map([
-			[
-				"@fluidframework/container-definitions",
-				["ContainerErrorType", "ICriticalContainerError"],
-			],
-			["@fluidframework/routerlicious-driver", ["ITokenProvider", "ITokenResponse"]],
-			["@fluidframework/protocol-definitions", ["ScopeType", "ITokenClaims", "IUser"]],
-		]),
-	},
-	{
-		package: "@fluidframework/azure-service-utils",
-		sourceImports: new Map([["@fluidframework/protocol-definitions", ["IUser", "ScopeType"]]]),
-	},
-	{
-		package: "@fluidframework/container-definitions",
-		cleanOrigMembers: true,
-		sourceImports: new Map([
-			[
-				"@fluidframework/container-definitions",
-				["AttachState", "ContainerErrorType", "ICriticalContainerError"],
-			],
-		]),
-	},
+    {
+        package: "@fluidframework/test-client-utils",
+        sourceImports: new Map([
+            ["@fluidframework/test-runtime-utils", ["InsecureTokenProvider"]],
+        ])
+    },
+    {
+        package: "@fluidframework/azure-client",
+        sourceImports: new Map([
+            ["@fluidframework/routerlicious-driver", ["ITokenProvider", "ITokenResponse"]],
+            ["@fluidframework/protocol-definitions", ["ScopeType", "ITokenClaims", "IUser"]],
+        ])
+    },
+    {
+        package: "@fluidframework/fluid-static",
+        sourceImports: new Map([
+            ["@fluidframework/container-definitions", ["IAudience"]],
+        ])
+    },
+    {
+        package: "@fluidframework/container-definitions",
+        cleanOrigMembers: true,
+        sourceImports: new Map([
+            ["@fluidframework/container-definitions", ["AttachState"]],
+        ])
+    },
 ];
 
 /**
  * An array of tuples containing a member reference to search for and a replacement member reference string.
  */
 const stringReplacements = memberCombineInstructions.flatMap((instruction) => {
-	const returnValue = [];
-	const { package, sourceImports } = instruction;
-	for (const [sourcePackage, imports] of sourceImports) {
-		for (const importName of imports) {
-			if (importName !== "*") {
-				const searchString = `${sourcePackage}!${importName}`;
-				const replacementString = `${package}!${importName}`;
-				returnValue.push([searchString, replacementString]);
-			} else {
-				const searchString = `${sourcePackage}!`;
-				const replacementString = `${package}!`;
-				returnValue.push([searchString, replacementString]);
-			}
-		}
-	}
-	return returnValue;
+    const returnValue = [];
+    const { package, sourceImports } = instruction;
+    for (const [sourcePackage, imports] of sourceImports) {
+        for (const importName of imports) {
+            if (importName !== "*") {
+                const searchString = `${sourcePackage}!${importName}`;
+                const replacementString = `${package}!${importName}`;
+                returnValue.push([searchString, replacementString]);
+            } else {
+                const searchString = `${sourcePackage}!`;
+                const replacementString = `${package}!`;
+                returnValue.push([searchString, replacementString]);
+            }
+        }
+    }
+    return returnValue;
 });
 
+/**
+ * Adds an array of strings to a set individually.
+ *
+ * @param {Set<string>} set
+ * @param {string[]} add
+ */
+const addToSet = (set, add) => {
+    for (item of add) {
+        set.add(item);
+    }
+}
+
+/** A Set containing all the packages that are needed to do the API rollup. */
+const allStagingPackages = new Set(websitePackages);
+for (const { package, sourceImports } of memberCombineInstructions) {
+    allStagingPackages.add(package);
+    addToSet(allStagingPackages, Array.from(sourceImports.keys()));
+}
+
+exports.allStagingPackages = Array.from(allStagingPackages);
 exports.memberCombineInstructions = memberCombineInstructions;
 exports.stringReplacements = stringReplacements;
+exports.websitePackages = websitePackages;

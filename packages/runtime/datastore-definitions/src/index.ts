@@ -4,21 +4,14 @@
  */
 
 /**
- * This library defines the interfaces required to implement and/or communicate
- * with a data store.
- *
- * @packageDocumentation
- */
+* This package defines the interfaces required to implement and/or communicate
+* with a data store.
+*
+* @packageDocumentation
+*/
 
-export {
-	IChannel,
-	IChannelFactory,
-	IChannelServices,
-	IChannelStorageService,
-	IDeltaConnection,
-	IDeltaHandler,
-} from "./channel";
-export { IFluidDataStoreRuntime, IFluidDataStoreRuntimeEvents } from "./dataStoreRuntime";
-export { Jsonable } from "./jsonable";
-export { Serializable } from "./serializable";
-export { IChannelAttributes } from "./storage";
+export * from "./channel";
+export * from "./dataStoreRuntime";
+export * from "./jsonable";
+export * from "./serializable";
+export * from "./storage";

@@ -3,5 +3,5 @@
  * Licensed under the MIT License.
  */
 
-export { CopierLambda } from "./lambda";
-export { CopierLambdaFactory } from "./lambdaFactory";
+export * from "./lambda";
+export * from "./lambdaFactory";

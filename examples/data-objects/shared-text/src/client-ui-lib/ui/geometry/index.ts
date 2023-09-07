@@ -3,6 +3,6 @@
  * Licensed under the MIT License.
  */
 
-export { distanceSquared, IPoint, Point } from "./point";
-export { Rectangle, Square } from "./rectangle";
-export { ISize } from "./size";
+export * from "./point";
+export * from "./rectangle";
+export * from "./size";

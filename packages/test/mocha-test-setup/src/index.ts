@@ -3,4 +3,4 @@
  * Licensed under the MIT License.
  */
 
-export { mochaHooks } from "./mochaHooks";
+export * from "./mochaHooks";

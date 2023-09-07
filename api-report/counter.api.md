@@ -4,7 +4,6 @@
 
 ```ts
 
-import { IChannelAttributes } from '@fluidframework/datastore-definitions';
 import { IChannelFactory } from '@fluidframework/datastore-definitions';
 import { IChannelStorageService } from '@fluidframework/datastore-definitions';
 import { IFluidDataStoreRuntime } from '@fluidframework/datastore-definitions';
@@ -29,9 +28,8 @@ export interface ISharedCounterEvents extends ISharedObjectEvents {
 
 // @public
 export class SharedCounter extends SharedObject<ISharedCounterEvents> implements ISharedCounter {
-    constructor(id: string, runtime: IFluidDataStoreRuntime, attributes: IChannelAttributes);
-    // @internal (undocumented)
-    protected applyStashedOp(op: unknown): void;
+    // @internal
+    protected applyStashedOp(): void;
     static create(runtime: IFluidDataStoreRuntime, id?: string): SharedCounter;
     static getFactory(): IChannelFactory;
     increment(incrementAmount: number): void;
@@ -44,6 +42,7 @@ export class SharedCounter extends SharedObject<ISharedCounterEvents> implements
     // @internal
     protected summarizeCore(serializer: IFluidSerializer): ISummaryTreeWithStats;
     get value(): number;
-}
+    }
+
 
 ```

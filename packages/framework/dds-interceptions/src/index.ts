@@ -3,5 +3,5 @@
  * Licensed under the MIT License.
  */
 
-export { createDirectoryWithInterception, createSharedMapWithInterception } from "./map";
-export { createSharedStringWithInterception } from "./sequence";
+export * from "./sequence";
+export * from "./map";

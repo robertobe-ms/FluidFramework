@@ -3,9 +3,7 @@
  * Licensed under the MIT License.
  */
 
-import { strict as assert } from 'assert';
 import { expect } from 'chai';
-import { validateAssertionError } from '@fluidframework/test-runtime-utils';
 import { compareForestNodes, Forest, ForestNode } from '../Forest';
 import { NodeId, TraitLabel } from '../Identifiers';
 import { Payload } from '../persisted-types';
@@ -63,11 +61,11 @@ describe('Forest', () => {
 	});
 
 	it('fails on multiparenting', () => {
-		assert.throws(() => oneNodeForest.add([makeForestNodeWithChildren(testTree, parentId, childId, childId)]));
+		expect(() => oneNodeForest.add([makeForestNodeWithChildren(testTree, parentId, childId, childId)])).to.throw();
 	});
 
 	it('cannot add a node with a duplicate ID', () => {
-		assert.throws(() => oneNodeForest.add([makeForestNodeWithChildren(testTree, parentId)]));
+		expect(() => oneNodeForest.add([makeForestNodeWithChildren(testTree, parentId)])).to.throw();
 	});
 
 	it('can get nodes in the forest', () => {
@@ -142,13 +140,11 @@ describe('Forest', () => {
 
 	it('only accepts valid indices for attaches', () => {
 		const twoNodeForest = oneNodeForest.add([makeForestNodeWithChildren(testTree, childId)]);
-		assert.throws(
-			() => twoNodeForest.attachRangeOfChildren(parentId, mainTraitLabel, -1, [childId]),
-			(e: Error) => validateAssertionError(e, 'invalid attach index')
+		expect(() => twoNodeForest.attachRangeOfChildren(parentId, mainTraitLabel, -1, [childId])).to.throw(
+			'invalid attach index'
 		);
-		assert.throws(
-			() => twoNodeForest.attachRangeOfChildren(parentId, mainTraitLabel, 1, [childId]),
-			(e: Error) => validateAssertionError(e, 'invalid attach index')
+		expect(() => twoNodeForest.attachRangeOfChildren(parentId, mainTraitLabel, 1, [childId])).to.throw(
+			'invalid attach index'
 		);
 	});
 
@@ -171,33 +167,25 @@ describe('Forest', () => {
 	});
 
 	it('only accepts valid indices for detaches', () => {
-		assert.throws(
-			() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, -1, -1),
-			(e: Error) => validateAssertionError(e, 'invalid detach index range')
+		expect(() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, -1, -1)).to.throw(
+			'invalid detach index range'
 		);
-		assert.throws(
-			() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, -1, 0),
-			(e: Error) => validateAssertionError(e, 'invalid detach index range')
+		expect(() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, -1, 0)).to.throw(
+			'invalid detach index range'
 		);
-		assert.throws(
-			() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, 1, 0),
-			(e: Error) => validateAssertionError(e, 'invalid detach index range')
+		expect(() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, 1, 0)).to.throw(
+			'invalid detach index range'
 		);
-		assert.throws(
-			() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, 0, 2),
-			(e: Error) => validateAssertionError(e, 'invalid detach index range')
+		expect(() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, 0, 2)).to.throw(
+			'invalid detach index range'
 		);
-		assert.throws(
-			() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, 1, 2),
-			(e: Error) => validateAssertionError(e, 'invalid detach index range')
+		expect(() => parentForest.detachRangeOfChildren(parentId, mainTraitLabel, 1, 2)).to.throw(
+			'invalid detach index range'
 		);
 	});
 
 	it('cannot delete parented nodes', () => {
-		assert.throws(
-			() => parentForest.delete([childId], false),
-			(e: Error) => validateAssertionError(e, 'deleted nodes must be unparented')
-		);
+		expect(() => parentForest.delete([childId], false)).throws('deleted nodes must be unparented');
 	});
 
 	it('can delete a root', () => {

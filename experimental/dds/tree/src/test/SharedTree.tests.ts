@@ -10,6 +10,7 @@ import { runSummarySizeTests } from './utilities/SummarySizeTests';
 import { runPendingLocalStateTests } from './utilities/PendingLocalStateTests';
 import { runSharedTreeVersioningTests } from './utilities/SharedTreeVersioningTests';
 import { runSummaryTests } from './Summary.tests';
+import { runSharedTreeFuzzTests } from './fuzz/SharedTreeFuzzTests';
 
 describe('SharedTree', () => {
 	describe('Operations', () => {
@@ -20,4 +21,5 @@ describe('SharedTree', () => {
 	runSummarySizeTests('Summary size', setUpLocalServerTestSharedTree);
 	runPendingLocalStateTests('Stashed ops', setUpLocalServerTestSharedTree);
 	runSharedTreeVersioningTests('Versioning', setUpTestSharedTree);
+	runSharedTreeFuzzTests('Fuzz tests with local server');
 });

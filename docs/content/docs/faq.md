@@ -24,8 +24,9 @@ DDS is short for *distributed data structure*. DDSes are the foundation of the F
 that the Fluid runtime is able to keep them in sync across clients while each client operates on the DDSes in largely
 the same way they would operate on local data. The data source for a Fluid solution can represent numerous DDSes.
 
-There are many types of DDSes including a [SharedMap]({{< relref "data-structures/map.md" >}}) that is a distributed version of a JavaScript Map, and a [SharedString]({{< relref "data-structures/string.md" >}}) that is designed to enable real-time editing of text data by multiple clients simultaneously.
-Developers can use the DDSes included with the Fluid Framework or develop new ones.
+There are many types of DDSes including a SharedMap that is a distributed version of a JavaScript Map and a SharedString
+that is designed to enable real-time editing of text data by multiple clients simultaneously. Developers can use the
+DDSes included with the Fluid Framework or develop new ones.
 
 Any practical limits on the types of data and size of a DDS will be specific to the implementation of that DDS. DDSes
 can contain text, images, and other binary data and can effectively be any size. However, managing scale on the client
@@ -48,7 +49,7 @@ It is important to note that these files share many of the properties of a norma
 location in a file structure, but because these experiences rely on the Fluid service, downloading the files and
 working locally is not supported.
 
-### How is data synchronized?
+### How is data sync'd?
 
 In order to keep all clients in sync, they must be connected to a Fluid service. This service's core
 responsibility is sequencing all the incoming Fluid operations and then broadcasting them to all clients. Because
@@ -58,8 +59,8 @@ identical state.
 Note, there isn't a centralized Fluid service for all Fluid experiences. But for each Fluid experience, there is only
 one Fluid service.
 
-Fluid clients connect to the Fluid service using the [WebSocket](https://en.wikipedia.org/wiki/WebSocket) protocol.
-However, the Fluid runtime manages all of the connections so that Fluid client developers can focus on local experiences.
+Fluid clients connect to the Fluid service using the WebSocket protocol. However, the Fluid runtime manages
+all of the connections so that Fluid client developers can focus on local experiences.
 
 ## Scale
 
@@ -99,8 +100,9 @@ while a SignalR solution designed to distribute state would require additional s
 
 ### Does Fluid use operational transforms?
 
-Fluid does not use Operational Transforms (OTs), but we learned a tremendous amount from the literature on OT.
-While OT uses operations that can be applied out of order by transforming operations to account for recent changes, Fluid relies on a [Total Order Broadcast]({{< relref "tob.md" >}}) to guarantee that all operations are applied in a specific order.
+Fluid does not use Operational Transforms (OT), but we learned a tremendous amount from the literature on OT. While
+OT uses operations that can be applied out of order by transforming operations to account for recent changes, Fluid
+relies on a Total Order Broadcast to guarantee that all operations are applied in a specific order.
 
 ### Does Fluid use CRDT?
 
@@ -112,9 +114,9 @@ conflicts. This allows us to have non-commutative operations because there is an
 
 ### What kind of support is there for real-time editing of text?
 
-This is the scenario that Fluid was first designed to support.
-Consequently, the Fluid Framework is an ideal foundation for rich text editors that support simultaneous editing by multiple clients.
-The [SharedString]({{< relref "string.md" >}}) DDS is tailor-made for this scenario.
+This is the scenario that Fluid was first designed to support. Consequently, the Fluid Framework is an ideal foundation
+for rich text editors that support simultaneous editing by multiple clients. The SharedString DDS is
+tailor-made for this scenario.
 
 ### Turn-based games?
 
@@ -139,7 +141,7 @@ The Fluid service is general-purpose and, as a rule, Fluid solutions will work w
 Fluid solutions can use a local server or a "test quality" server for development and trust that their solution
 will work against whatever production server their solution is pointed at.
 
-The Fluid Framework includes a reference implementation of the Fluid service called [Routerlicious](https://github.com/microsoft/FluidFramework/tree/main/server#readme) that you can use for
+The Fluid Framework includes a reference implementation of the Fluid service called Routerlicious that you can use for
 development or as the basis for a production quality server.
 
 ### Where is the shared data stored?
@@ -154,7 +156,9 @@ Microsoft has developed an M365-specific Fluid service designed to enable soluti
 ecosystem. There will be ways for Fluid Framework developers to operate in M365 but those integration points are
 not available yet.
 
-Microsoft has also announced [Azure Fluid Relay](https://azure.microsoft.com/en-us/products/fluid-relay/), a fully managed Fluid service.
+Microsoft has also
+[announced](https://devblogs.microsoft.com/microsoft365dev/whats-new-in-microsoft-365-platform-at-build-2021/) Azure
+Fluid Relay, a fully managed Fluid service, at Build 2021.
 
 ### Besides SharePoint, where else can we store .fluid files?
 
@@ -185,15 +189,16 @@ Fluid developers will be able to leverage existing Fluid services that will emer
 
 ### How are Fluid solutions deployed?
 
-Fluid solutions are, at the end of the day, simple JavaScript.
-At Microsoft, Fluid solutions are deployed to [content delivery network](https://en.wikipedia.org/wiki/Content_delivery_network)s (CDNs) like any other static resource.
-Because Fluid is very client-centric, deployment is very simple.
+Fluid solutions are, at the end of the day, simple JavaScript. At Microsoft, Fluid solutions are deployed to CDNs like
+any other static resource. Because Fluid is very client-centric, deployment is very simple.
 
 ## Conflicts and History
 
 ### How does Fluid Framework deal with conflict resolution?
 
-Conflict resolution is built into the DDSes, and the strategies vary between DDSes.  For example the SharedMap uses a last-write-wins approach, whereas SharedString attempts to apply all changes while preserving user intention.  The strategies used by each DDS are detailed on their respective documentation pages.
+This depends a great deal on the specific DDS. But, regardless of the final state of the data, operations are stored
+in the Fluid ops stream. So, in cases where a client is unhappy with the final state, there are approaches for
+achieving consensus that can be built into the DDS or handled by the client.
 
 ### Can we create custom strategies to handle update collisions to the distributed data structure?
 

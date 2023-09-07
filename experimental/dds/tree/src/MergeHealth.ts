@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 
-import { ITelemetryLoggerExt } from '@fluidframework/telemetry-utils';
+import { ITelemetryLogger } from '@fluidframework/common-definitions';
 import { assertNotUndefined, fail } from './Common';
 import { PlaceValidationResult, RangeValidationResultKind } from './EditUtilities';
 import { SharedTreeEvent } from './EventTypes';
@@ -207,7 +207,7 @@ export interface MergeHealthStats {
  */
 export class SharedTreeMergeHealthTelemetryHeartbeat {
 	private heartbeatTimerId = 0;
-	private readonly treeData = new Map<SharedTree, { tally: MergeHealthStats; logger?: ITelemetryLoggerExt }>();
+	private readonly treeData = new Map<SharedTree, { tally: MergeHealthStats; logger?: ITelemetryLogger }>();
 
 	/**
 	 * Adds a tree to the set of tree to log merge health telemetry for.
@@ -361,16 +361,11 @@ export class SharedTreeMergeHealthTelemetryHeartbeat {
 							case RangeValidationResultKind.PlacesInDifferentTraits:
 								tally.updatedRangeHasPlacesInDifferentTraitsCount += 1;
 								break;
+							case RangeValidationResultKind.BadPlace:
+								tally.updatedRangeBadPlaceCount += 1;
+								break;
 							default:
-								// 'rangeFailure' is either a RangeValidationResultKind (handled above), or an object
-								// with a nested 'kind' property containing the RangeValidationResultKind (handled below).
-								switch (outcome.failure.rangeFailure?.kind) {
-									case RangeValidationResultKind.BadPlace:
-										tally.updatedRangeBadPlaceCount += 1;
-										break;
-									default:
-										break;
-								}
+								break;
 						}
 						break;
 					}

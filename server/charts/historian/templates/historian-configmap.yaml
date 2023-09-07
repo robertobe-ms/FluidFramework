@@ -20,7 +20,6 @@ data:
         },
         "requestSizeLimit": "1gb",
         "riddler": "{{ .Values.historian.riddler }}",
-        "ignoreEphemeralFlag": {{ .Values.historian.ignoreEphemeralFlag }},
         "redis": {
             "host": "{{ .Values.historian.redis.url }}",
             "port": "{{ .Values.historian.redis.port }}",
@@ -38,15 +37,10 @@ data:
             "endpoint": "{{ .Values.historian.error.endpoint }}"
         },
         "throttling": {
-            "restCallsPerTenant": {
-                "generalRestCall": {{ toJson .Values.historian.throttling.restCallsPerTenant.generalRestCall }},
-                "getSummary": {{ toJson .Values.historian.throttling.restCallsPerTenant.getSummary }},
-                "createSummary": {{ toJson .Values.historian.throttling.restCallsPerTenant.createSummary }}
-            },
-            "restCallsPerCluster": {
-                "getSummary": {{ toJson .Values.historian.throttling.restCallsPerCluster.getSummary }},
-                "createSummary": {{ toJson .Values.historian.throttling.restCallsPerCluster.createSummary }}
-            }
+            "maxRequestsPerMs": {{ .Values.historian.throttling.maxRequestsPerMs }},
+            "maxRequestBurst": {{ .Values.historian.throttling.maxRequestBurst }},
+            "minCooldownIntervalInMs": {{ .Values.historian.throttling.minCooldownIntervalInMs }},
+            "minThrottleIntervalInMs": {{ .Values.historian.throttling.minThrottleIntervalInMs }}
         },
         "restGitService": {
             "disableGitCache": {{ .Values.historian.restGitService.disableGitCache }}

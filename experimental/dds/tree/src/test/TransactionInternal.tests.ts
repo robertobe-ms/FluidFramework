@@ -3,8 +3,9 @@
  * Licensed under the MIT License.
  */
 
-import { expect, assert } from 'chai';
+import { expect } from 'chai';
 import { DetachedSequenceId, NodeId, TraitLabel } from '../Identifiers';
+import { assert } from '../Common';
 import { getChangeNodeFromViewNode } from '../SerializationUtilities';
 import { GenericTransaction, TransactionInternal } from '../TransactionInternal';
 import {

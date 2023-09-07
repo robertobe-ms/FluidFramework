@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 
-import { IDisposable, IErrorEvent, IEventProvider } from "@fluidframework/common-definitions";
+import { IErrorEvent, IEventProvider } from "@fluidframework/common-definitions";
 import { ISequencedClient } from "./clients";
 
 /**
@@ -14,44 +14,54 @@ import { ISequencedClient } from "./clients";
  * the proposal.
  */
 export interface IProposal {
-    // The key for the proposal
-    key: string;
+	/**
+	 * The key for the proposal.
+	 */
+	key: string;
 
-    // The value of the proposal
-    value: any;
+	/**
+	 * The value of the proposal.
+	 */
+	value: unknown;
 }
 
 /**
  * Similar to IProposal except includes the sequence number when it was made in addition to the fields on IProposal
  */
-export type ISequencedProposal = { sequenceNumber: number; } & IProposal;
+export type ISequencedProposal = { sequenceNumber: number } & IProposal;
 
 /**
  * Adds the sequence number at which the message was approved to an ISequencedProposal
  */
-export type IApprovedProposal = { approvalSequenceNumber: number; } & ISequencedProposal;
+export type IApprovedProposal = { approvalSequenceNumber: number } & ISequencedProposal;
 
 /**
  * Adds the sequence number at which the message was committed to an IApprovedProposal
  */
-export type ICommittedProposal = { commitSequenceNumber: number; } & IApprovedProposal;
+export type ICommittedProposal = { commitSequenceNumber: number } & IApprovedProposal;
 
 /**
  * Events fired by a Quorum in response to client tracking.
  */
 export interface IQuorumClientsEvents extends IErrorEvent {
-    (event: "addMember", listener: (clientId: string, details: ISequencedClient) => void);
-    (event: "removeMember", listener: (clientId: string) => void);
+	(event: "addMember", listener: (clientId: string, details: ISequencedClient) => void);
+	(event: "removeMember", listener: (clientId: string) => void);
 }
 
 /**
  * Events fired by a Quorum in response to proposal tracking.
  */
 export interface IQuorumProposalsEvents extends IErrorEvent {
-    (event: "addProposal", listener: (proposal: ISequencedProposal) => void);
-    (
-        event: "approveProposal",
-        listener: (sequenceNumber: number, key: string, value: any, approvalSequenceNumber: number) => void);
+	(event: "addProposal", listener: (proposal: ISequencedProposal) => void);
+	(
+		event: "approveProposal",
+		listener: (
+			sequenceNumber: number,
+			key: string,
+			value: unknown,
+			approvalSequenceNumber: number,
+		) => void,
+	);
 }
 
 /**
@@ -62,39 +72,39 @@ export type IQuorumEvents = IQuorumClientsEvents & IQuorumProposalsEvents;
 /**
  * Interface for tracking clients in the Quorum.
  */
-export interface IQuorumClients extends IEventProvider<IQuorumClientsEvents>, IDisposable {
-    getMembers(): Map<string, ISequencedClient>;
+export interface IQuorumClients extends IEventProvider<IQuorumClientsEvents> {
+	getMembers(): Map<string, ISequencedClient>;
 
-    getMember(clientId: string): ISequencedClient | undefined;
+	getMember(clientId: string): ISequencedClient | undefined;
 }
 
 /**
  * Interface for tracking proposals in the Quorum.
  */
-export interface IQuorumProposals extends IEventProvider<IQuorumProposalsEvents>, IDisposable {
-    propose(key: string, value: any): Promise<void>;
+export interface IQuorumProposals extends IEventProvider<IQuorumProposalsEvents> {
+	propose(key: string, value: unknown): Promise<void>;
 
-    has(key: string): boolean;
+	has(key: string): boolean;
 
-    get(key: string): any;
+	get(key: string): unknown;
 }
 
 /**
  * Interface combining tracking of clients as well as proposals in the Quorum.
  */
-export interface IQuorum extends
-    Omit<IQuorumClients, "on" | "once" | "off">,
-    Omit<IQuorumProposals, "on" | "once" | "off">,
-    IEventProvider<IQuorumEvents> { }
+export interface IQuorum
+	extends Omit<IQuorumClients, "on" | "once" | "off">,
+		Omit<IQuorumProposals, "on" | "once" | "off">,
+		IEventProvider<IQuorumEvents> {}
 
 export interface IProtocolState {
-    sequenceNumber: number;
-    minimumSequenceNumber: number;
-    members: [string, ISequencedClient][];
-    proposals: [number, ISequencedProposal, string[]][];
-    values: [string, ICommittedProposal][];
+	sequenceNumber: number;
+	minimumSequenceNumber: number;
+	members: [string, ISequencedClient][];
+	proposals: [number, ISequencedProposal, string[]][];
+	values: [string, ICommittedProposal][];
 }
 
 export interface IProcessMessageResult {
-    immediateNoOp?: boolean;
+	immediateNoOp?: boolean;
 }

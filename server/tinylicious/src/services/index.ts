@@ -3,8 +3,9 @@
  * Licensed under the MIT License.
  */
 
-export * from "./dbFactory";
-export * from "./pubSubPublisher";
-export * from "./taskMessageSender";
-export * from "./tenantManager";
-export * from "./webServerFactory";
+export { getDbFactory } from "./dbFactory";
+export { PubSubPublisher } from "./pubSubPublisher";
+export { StorageNameAllocator } from "./storageNameAllocator";
+export { TaskMessageSender } from "./taskMessageSender";
+export { TenantManager, TinyliciousTenant } from "./tenantManager";
+export { WebServerFactory } from "./webServerFactory";

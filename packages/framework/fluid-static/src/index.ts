@@ -3,7 +3,28 @@
  * Licensed under the MIT License.
  */
 
-export * from "./fluidContainer";
-export * from "./rootDataObject";
-export * from "./serviceAudience";
-export * from "./types";
+/**
+ * Provides a simple and powerful way to consume collaborative Fluid data.
+ *
+ * @packageDocumentation
+ */
+
+export { FluidContainer, IFluidContainer, IFluidContainerEvents } from "./fluidContainer";
+export { DOProviderContainerRuntimeFactory } from "./rootDataObject";
+export { ServiceAudience } from "./serviceAudience";
+export {
+	ContainerSchema,
+	DataObjectClass,
+	IConnection,
+	IMember,
+	IRootDataObject,
+	IServiceAudience,
+	IServiceAudienceEvents,
+	LoadableObjectClass,
+	LoadableObjectClassRecord,
+	LoadableObjectCtor,
+	LoadableObjectRecord,
+	MemberChangedListener,
+	SharedObjectClass,
+	Myself,
+} from "./types";

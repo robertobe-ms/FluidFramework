@@ -5,4 +5,7 @@
 
 import { IsomorphicPerformance } from "./performanceIsomorphic";
 
-export const performance: IsomorphicPerformance = window.performance;
+/**
+ * @deprecated Moved to the `@fluidframework-internal/client-utils` package.
+ */
+export const performance: IsomorphicPerformance = globalThis.performance;

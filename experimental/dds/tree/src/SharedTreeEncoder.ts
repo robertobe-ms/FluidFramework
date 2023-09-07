@@ -3,8 +3,9 @@
  * Licensed under the MIT License.
  */
 
-import { IsoBuffer } from '@fluidframework/common-utils';
-import { assert, fail } from './Common';
+import { assert } from '@fluidframework/core-utils';
+import { IsoBuffer } from '@fluid-internal/client-utils';
+import { assertWithMessage, fail } from './Common';
 import { EditLog } from './EditLog';
 import { convertTreeNodes, newEdit } from './EditUtilities';
 import { AttributionId, DetachedSequenceId, FinalNodeId, OpSpaceNodeId, TraitLabel } from './Identifiers';
@@ -134,18 +135,9 @@ export class SharedTreeEncoder_0_1_1 {
 		interner: StringInterner,
 		serializedIdCompressor: SerializedIdCompressorWithNoSession
 	): SharedTreeSummary {
-		if (this.summarizeHistory) {
-			return this.fullHistorySummarizer(edits, currentView, idNormalizer, interner, serializedIdCompressor);
-		} else {
-			return this.noHistorySummarizer(
-				edits,
-				currentView,
-				idContext,
-				idNormalizer,
-				interner,
-				serializedIdCompressor
-			);
-		}
+		return this.summarizeHistory
+			? this.fullHistorySummarizer(edits, currentView, idNormalizer, interner, serializedIdCompressor)
+			: this.noHistorySummarizer(edits, currentView, idContext, idNormalizer, interner, serializedIdCompressor);
 	}
 
 	/**
@@ -161,8 +153,11 @@ export class SharedTreeEncoder_0_1_1 {
 		}: SharedTreeSummary,
 		attributionId: AttributionId
 	): SummaryContents {
-		assert(version === WriteFormat.v0_1_1, `Invalid summary version to decode: ${version}, expected: 0.1.1`);
-		assert(typeof editHistory === 'object', '0.1.1 summary encountered with non-object edit history.');
+		assertWithMessage(
+			version === WriteFormat.v0_1_1,
+			`Invalid summary version to decode: ${version}, expected: 0.1.1`
+		);
+		assert(typeof editHistory === 'object', 0x633 /* 0.1.1 summary encountered with non-object edit history. */);
 
 		const idCompressor = hasOngoingSession(serializedIdCompressor)
 			? IdCompressor.deserialize(serializedIdCompressor)
@@ -175,8 +170,8 @@ export class SharedTreeEncoder_0_1_1 {
 				? this.treeCompressor.decompress(compressedTree, interner, sequencedNormalizer)
 				: undefined;
 		const { editChunks, editIds } = editHistory;
-		assert(editChunks !== undefined, 'Missing editChunks on 0.1.1 summary.');
-		assert(editIds !== undefined, 'Missing editIds on 0.1.1 summary.');
+		assertWithMessage(editChunks !== undefined, 'Missing editChunks on 0.1.1 summary.');
+		assert(editIds !== undefined, 0x634 /* Missing editIds on 0.1.1 summary. */);
 
 		const uncompressedChunks = editChunks.map(({ startRevision, chunk }) => ({
 			startRevision,
@@ -237,7 +232,7 @@ export class SharedTreeEncoder_0_1_1 {
 
 		assert(
 			currentTree.identifier === initialTreeId && currentTree.definition === initialTree.definition,
-			'root definition and identifier should be immutable.'
+			0x635 /* root definition and identifier should be immutable. */
 		);
 		const edit = newEdit(changes);
 		const compressedChanges = edit.changes.map((change) =>
@@ -300,7 +295,7 @@ export class SharedTreeEncoder_0_1_1 {
 		idNormalizer: ContextualizedNodeIdNormalizer<FinalNodeId>,
 		interner: StringInterner
 	): EditWithoutId<ChangeInternal>[] {
-		assert(
+		assertWithMessage(
 			contents.version === WriteFormat.v0_1_1,
 			`Invalid editChunk to decode: ${contents.version}. Expected 0.1.1.`
 		);
@@ -364,11 +359,9 @@ export class SharedTreeEncoder_0_0_2 {
 		currentView: RevisionView,
 		idConverter: NodeIdConverter
 	): SharedTreeSummary_0_0_2 {
-		if (this.summarizeHistory) {
-			return this.fullHistorySummarizer(edits, currentView, idConverter);
-		} else {
-			return this.noHistorySummarizer(edits, currentView, idConverter);
-		}
+		return this.summarizeHistory
+			? this.fullHistorySummarizer(edits, currentView, idConverter)
+			: this.noHistorySummarizer(edits, currentView, idConverter);
 	}
 
 	/**
@@ -378,7 +371,7 @@ export class SharedTreeEncoder_0_0_2 {
 		{ currentTree, sequencedEdits }: SharedTreeSummary_0_0_2,
 		attributionId?: AttributionId
 	): SummaryContents {
-		assert(sequencedEdits !== undefined, '0.0.2 summary encountered with missing sequencedEdits field.');
+		assert(sequencedEdits !== undefined, 0x636 /* 0.0.2 summary encountered with missing sequencedEdits field. */);
 		const idCompressor = new IdCompressor(createSessionId(), reservedIdCount, attributionId);
 		const idGenerator = getNodeIdContext(idCompressor);
 		const generateId = (id) => idGenerator.generateNodeId(id);
@@ -441,7 +434,7 @@ export class SharedTreeEncoder_0_0_2 {
 
 		assert(
 			currentTree.identifier === initialTree.identifier && currentTree.definition === initialTree.definition,
-			'root definition and identifier should be immutable.'
+			0x637 /* root definition and identifier should be immutable. */
 		);
 		const edit = newEdit(changes);
 

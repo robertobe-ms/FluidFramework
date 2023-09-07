@@ -9,11 +9,11 @@ import { FluidObject } from '@fluidframework/core-interfaces';
 import { IAudience } from '@fluidframework/container-definitions';
 import { IClientDetails } from '@fluidframework/protocol-definitions';
 import { IDeltaManager } from '@fluidframework/container-definitions';
-import { IDisposable } from '@fluidframework/common-definitions';
+import { IDisposable } from '@fluidframework/core-interfaces';
 import { IDocumentMessage } from '@fluidframework/protocol-definitions';
 import { IDocumentStorageService } from '@fluidframework/driver-definitions';
-import { IEvent } from '@fluidframework/common-definitions';
-import { IEventProvider } from '@fluidframework/common-definitions';
+import { IEvent } from '@fluidframework/core-interfaces';
+import { IEventProvider } from '@fluidframework/core-interfaces';
 import { IFluidHandle } from '@fluidframework/core-interfaces';
 import { IFluidRouter } from '@fluidframework/core-interfaces';
 import { ILoaderOptions } from '@fluidframework/container-definitions';
@@ -25,18 +25,33 @@ import { ISequencedDocumentMessage } from '@fluidframework/protocol-definitions'
 import { ISignalMessage } from '@fluidframework/protocol-definitions';
 import { ISnapshotTree } from '@fluidframework/protocol-definitions';
 import { ISummaryTree } from '@fluidframework/protocol-definitions';
-import { ITelemetryBaseLogger } from '@fluidframework/common-definitions';
+import { ITelemetryBaseLogger } from '@fluidframework/core-interfaces';
 import { ITree } from '@fluidframework/protocol-definitions';
+import type { IUser } from '@fluidframework/protocol-definitions';
 import { SummaryTree } from '@fluidframework/protocol-definitions';
+import { TelemetryEventPropertyType } from '@fluidframework/core-interfaces';
 
 // @public
-export type AliasResult = "Success" | "Conflict" | "Aliasing" | "AlreadyAliased";
+export type AliasResult = "Success" | "Conflict" | "AlreadyAliased";
+
+// @alpha
+export interface AttributionInfo {
+    timestamp: number;
+    user: IUser;
+}
+
+// @alpha
+export type AttributionKey = OpAttributionKey | DetachedAttributionKey | LocalAttributionKey;
+
+// @public (undocumented)
+export const blobCountPropertyName = "BlobCount";
 
 // @public (undocumented)
 export const channelsTreeName = ".channels";
 
 // @public (undocumented)
-export type CreateChildSummarizerNodeFn = (summarizeInternal: SummarizeInternalFn, getGCDataFn: (fullGC?: boolean) => Promise<IGarbageCollectionData>, getInitialGCSummaryDetailsFn: () => Promise<IGarbageCollectionSummaryDetails>) => ISummarizerNodeWithGC;
+export type CreateChildSummarizerNodeFn = (summarizeInternal: SummarizeInternalFn, getGCDataFn: (fullGC?: boolean) => Promise<IGarbageCollectionData>,
+getBaseGCDetailsFn?: () => Promise<IGarbageCollectionDetailsBase>) => ISummarizerNodeWithGC;
 
 // @public (undocumented)
 export type CreateChildSummarizerNodeParam = {
@@ -59,6 +74,13 @@ export enum CreateSummarizerNodeSource {
     Local = 2
 }
 
+// @alpha
+export interface DetachedAttributionKey {
+    id: 0;
+    // (undocumented)
+    type: "detached";
+}
+
 // @public
 export type FluidDataStoreRegistryEntry = Readonly<Partial<IProvideFluidDataStoreRegistry & IProvideFluidDataStoreFactory>>;
 
@@ -69,7 +91,21 @@ export enum FlushMode {
 }
 
 // @public (undocumented)
-export const gcBlobKey = "gc";
+export enum FlushModeExperimental {
+    Async = 2
+}
+
+// @public
+export const gcBlobPrefix = "__gc";
+
+// @public
+export const gcDeletedBlobKey = "__deletedNodes";
+
+// @public
+export const gcTombstoneBlobKey = "__tombstones";
+
+// @public
+export const gcTreeKey = "gc";
 
 // @public
 export interface IAttachMessage {
@@ -84,7 +120,7 @@ export interface IContainerRuntimeBase extends IEventProvider<IContainerRuntimeB
     readonly clientDetails: IClientDetails;
     createDataStore(pkg: string | string[]): Promise<IDataStore>;
     // @internal @deprecated (undocumented)
-    _createDataStoreWithProps(pkg: string | string[], props?: any, id?: string, isRoot?: boolean): Promise<IDataStore>;
+    _createDataStoreWithProps(pkg: string | string[], props?: any, id?: string): Promise<IDataStore>;
     createDetachedDataStore(pkg: Readonly<string[]>): IFluidDataStoreContextDetached;
     getAbsoluteUrl(relativeUrl: string): Promise<string | undefined>;
     getAudience(): IAudience;
@@ -93,17 +129,17 @@ export interface IContainerRuntimeBase extends IEventProvider<IContainerRuntimeB
     readonly logger: ITelemetryBaseLogger;
     orderSequentially(callback: () => void): void;
     request(request: IRequest): Promise<IResponse>;
-    // @deprecated
-    setFlushMode(mode: FlushMode): void;
     submitSignal(type: string, content: any): void;
     // (undocumented)
-    uploadBlob(blob: ArrayBufferLike): Promise<IFluidHandle<ArrayBufferLike>>;
+    uploadBlob(blob: ArrayBufferLike, signal?: AbortSignal): Promise<IFluidHandle<ArrayBufferLike>>;
 }
 
 // @public (undocumented)
 export interface IContainerRuntimeBaseEvents extends IEvent {
     // (undocumented)
-    (event: "batchBegin" | "op", listener: (op: ISequencedDocumentMessage) => void): any;
+    (event: "batchBegin", listener: (op: ISequencedDocumentMessage) => void): any;
+    // (undocumented)
+    (event: "op", listener: (op: ISequencedDocumentMessage, runtimeMessage?: boolean) => void): any;
     // (undocumented)
     (event: "batchEnd", listener: (error: any, op: ISequencedDocumentMessage) => void): any;
     // (undocumented)
@@ -111,9 +147,34 @@ export interface IContainerRuntimeBaseEvents extends IEvent {
 }
 
 // @public
-export interface IDataStore extends IFluidRouter {
+export interface IDataStore {
+    readonly entryPoint?: IFluidHandle<FluidObject>;
+    // @deprecated (undocumented)
+    readonly IFluidRouter: IFluidRouter;
+    request(request: {
+        url: "/";
+        headers?: undefined;
+    }): Promise<IResponse>;
+    // @deprecated
+    request(request: IRequest): Promise<IResponse>;
     trySetAlias(alias: string): Promise<AliasResult>;
 }
+
+// @public
+export interface IdCreationRange {
+    // (undocumented)
+    readonly ids?: {
+        readonly firstGenCount: number;
+        readonly count: number;
+    };
+    // (undocumented)
+    readonly sessionId: SessionId;
+}
+
+// @public (undocumented)
+export type IdCreationRangeWithStashedState = IdCreationRange & {
+    stashedState: SerializedIdCompressorWithOngoingSession;
+};
 
 // @public
 export interface IEnvelope {
@@ -122,27 +183,38 @@ export interface IEnvelope {
 }
 
 // @public
-export interface IFluidDataStoreChannel extends IFluidRouter, IDisposable {
+export interface IExperimentalIncrementalSummaryContext {
+    latestSummarySequenceNumber: number;
+    summaryPath: string;
+    summarySequenceNumber: number;
+}
+
+// @public
+export interface IFluidDataStoreChannel extends IDisposable {
     // (undocumented)
     applyStashedOp(content: any): Promise<unknown>;
-    // @deprecated (undocumented)
+    // @deprecated
     attachGraph(): void;
     readonly attachState: AttachState;
-    // @deprecated (undocumented)
-    bindToContext(): void;
-    getAttachSummary(): ISummaryTreeWithStats;
+    readonly entryPoint?: IFluidHandle<FluidObject>;
+    getAttachSummary(telemetryContext?: ITelemetryContext): ISummaryTreeWithStats;
     getGCData(fullGC?: boolean): Promise<IGarbageCollectionData>;
     // (undocumented)
     readonly id: string;
-    makeVisibleAndAttachGraph?(): void;
+    // @deprecated (undocumented)
+    readonly IFluidRouter: IFluidRouter;
+    makeVisibleAndAttachGraph(): void;
     process(message: ISequencedDocumentMessage, local: boolean, localOpMetadata: unknown): void;
     processSignal(message: any, local: boolean): void;
+    // @deprecated (undocumented)
+    request(request: IRequest): Promise<IResponse>;
     reSubmit(type: string, content: any, localOpMetadata: unknown): any;
+    rollback?(type: string, content: any, localOpMetadata: unknown): void;
     setConnectionState(connected: boolean, clientId?: string): any;
-    summarize(fullTree?: boolean, trackState?: boolean): Promise<ISummaryTreeWithStats>;
-    updateUsedRoutes(usedRoutes: string[], gcTimestamp?: number): void;
+    summarize(fullTree?: boolean, trackState?: boolean, telemetryContext?: ITelemetryContext): Promise<ISummaryTreeWithStats>;
+    updateUsedRoutes(usedRoutes: string[]): void;
     // (undocumented)
-    readonly visibilityState?: VisibilityState_2;
+    readonly visibilityState: VisibilityState_2;
 }
 
 // @public
@@ -165,22 +237,24 @@ export interface IFluidDataStoreContext extends IEventProvider<IFluidDataStoreCo
     readonly createProps?: any;
     // (undocumented)
     readonly deltaManager: IDeltaManager<ISequencedDocumentMessage, IDocumentMessage>;
+    ensureNoDataModelChanges<T>(callback: () => T): T;
     getAbsoluteUrl(relativeUrl: string): Promise<string | undefined>;
     getAudience(): IAudience;
-    getBaseGCDetails?(): Promise<IGarbageCollectionDetailsBase>;
+    // @deprecated (undocumented)
+    getBaseGCDetails(): Promise<IGarbageCollectionDetailsBase>;
     // (undocumented)
     getCreateChildSummarizerNodeFn(
     id: string,
     createParam: CreateChildSummarizerNodeParam): CreateChildSummarizerNodeFn;
-    // @deprecated (undocumented)
-    getInitialGCSummaryDetails(): Promise<IGarbageCollectionSummaryDetails>;
     getQuorum(): IQuorumClients;
     // (undocumented)
     readonly id: string;
+    // (undocumented)
+    readonly idCompressor?: IIdCompressor;
     readonly isLocalDataStore: boolean;
     // (undocumented)
     readonly logger: ITelemetryBaseLogger;
-    makeLocallyVisible?(): void;
+    makeLocallyVisible(): void;
     // (undocumented)
     readonly options: ILoaderOptions;
     readonly packagePath: readonly string[];
@@ -191,7 +265,7 @@ export interface IFluidDataStoreContext extends IEventProvider<IFluidDataStoreCo
     submitMessage(type: string, content: any, localOpMetadata: unknown): void;
     submitSignal(type: string, content: any): void;
     // (undocumented)
-    uploadBlob(blob: ArrayBufferLike): Promise<IFluidHandle<ArrayBufferLike>>;
+    uploadBlob(blob: ArrayBufferLike, signal?: AbortSignal): Promise<IFluidHandle<ArrayBufferLike>>;
 }
 
 // @public (undocumented)
@@ -233,26 +307,28 @@ export interface IGarbageCollectionData {
 // @public
 export interface IGarbageCollectionDetailsBase {
     gcData?: IGarbageCollectionData;
-    unrefTimestamp?: number;
     usedRoutes?: string[];
 }
 
 // @public
-export interface IGarbageCollectionNodeData {
-    outboundRoutes: string[];
-    unreferencedTimestampMs?: number;
-}
-
-// @public
-export interface IGarbageCollectionState {
+export interface IIdCompressor {
+    decompress(id: SessionSpaceCompressedId): StableId;
+    generateCompressedId(): SessionSpaceCompressedId;
     // (undocumented)
-    gcNodes: {
-        [id: string]: IGarbageCollectionNodeData;
-    };
+    localSessionId: SessionId;
+    normalizeToOpSpace(id: SessionSpaceCompressedId): OpSpaceCompressedId;
+    normalizeToSessionSpace(id: OpSpaceCompressedId, originSessionId: SessionId): SessionSpaceCompressedId;
+    recompress(uncompressed: StableId): SessionSpaceCompressedId;
+    tryRecompress(uncompressed: StableId): SessionSpaceCompressedId | undefined;
 }
 
-// @public @deprecated (undocumented)
-export type IGarbageCollectionSummaryDetails = IGarbageCollectionDetailsBase;
+// @public (undocumented)
+export interface IIdCompressorCore {
+    finalizeCreationRange(range: IdCreationRange): void;
+    serialize(withSession: true): SerializedIdCompressorWithOngoingSession;
+    serialize(withSession: false): SerializedIdCompressorWithNoSession;
+    takeNextCreationRange(): IdCreationRange;
+}
 
 // @public
 export interface IInboundSignalMessage extends ISignalMessage {
@@ -264,6 +340,9 @@ export interface IInboundSignalMessage extends ISignalMessage {
 export type InboundAttachMessage = Omit<IAttachMessage, "snapshot"> & {
     snapshot: IAttachMessage["snapshot"] | null;
 };
+
+// @public
+export const initialClusterCapacity = 512;
 
 // @public (undocumented)
 export interface IProvideFluidDataStoreFactory {
@@ -280,20 +359,21 @@ export interface IProvideFluidDataStoreRegistry {
 // @public (undocumented)
 export interface ISignalEnvelope {
     address?: string;
+    clientSignalSequenceNumber: number;
     contents: {
         type: string;
         content: any;
     };
 }
 
-// @public (undocumented)
+// @public
 export interface ISummarizeInternalResult extends ISummarizeResult {
     // (undocumented)
     id: string;
     pathPartsForChildren?: string[];
 }
 
-// @public (undocumented)
+// @public
 export interface ISummarizeResult {
     // (undocumented)
     stats: ISummaryStats;
@@ -305,21 +385,18 @@ export interface ISummarizeResult {
 export interface ISummarizerNode {
     // (undocumented)
     createChild(
-    summarizeInternalFn: (fullTree: boolean) => Promise<ISummarizeInternalResult>,
+    summarizeInternalFn: SummarizeInternalFn,
     id: string,
     createParam: CreateChildSummarizerNodeParam,
     config?: ISummarizerNodeConfig): ISummarizerNode;
     // (undocumented)
     getChild(id: string): ISummarizerNode | undefined;
     invalidate(sequenceNumber: number): void;
-    loadBaseSummary(snapshot: ISnapshotTree, readAndParseBlob: <T>(id: string) => Promise<T>): Promise<{
-        baseSummary: ISnapshotTree;
-        outstandingOps: ISequencedDocumentMessage[];
-    }>;
-    loadBaseSummaryWithoutDifferential(snapshot: ISnapshotTree): void;
+    isSummaryInProgress?(): boolean;
     recordChange(op: ISequencedDocumentMessage): void;
     readonly referenceSequenceNumber: number;
-    summarize(fullTree: boolean): Promise<ISummarizeResult>;
+    summarize(fullTree: boolean, trackState?: boolean, telemetryContext?: ITelemetryContext): Promise<ISummarizeResult>;
+    updateBaseSummaryState(snapshot: ISnapshotTree): void;
 }
 
 // @public (undocumented)
@@ -337,24 +414,20 @@ export interface ISummarizerNodeConfigWithGC extends ISummarizerNodeConfig {
 export interface ISummarizerNodeWithGC extends ISummarizerNode {
     // (undocumented)
     createChild(
-    summarizeInternalFn: (fullTree: boolean, trackState: boolean) => Promise<ISummarizeInternalResult>,
+    summarizeInternalFn: SummarizeInternalFn,
     id: string,
     createParam: CreateChildSummarizerNodeParam,
-    config?: ISummarizerNodeConfigWithGC, getGCDataFn?: (fullGC?: boolean) => Promise<IGarbageCollectionData>, getInitialGCSummaryDetailsFn?: () => Promise<IGarbageCollectionSummaryDetails>): ISummarizerNodeWithGC;
+    config?: ISummarizerNodeConfigWithGC, getGCDataFn?: (fullGC?: boolean) => Promise<IGarbageCollectionData>,
+    getBaseGCDetailsFn?: () => Promise<IGarbageCollectionDetailsBase>): ISummarizerNodeWithGC;
     deleteChild(id: string): void;
-    getBaseGCDetails?(): IGarbageCollectionDetailsBase;
     // (undocumented)
     getChild(id: string): ISummarizerNodeWithGC | undefined;
     getGCData(fullGC?: boolean): Promise<IGarbageCollectionData>;
-    // @deprecated (undocumented)
-    getGCSummaryDetails(): IGarbageCollectionSummaryDetails;
     isReferenced(): boolean;
-    // (undocumented)
-    summarize(fullTree: boolean, trackState?: boolean): Promise<ISummarizeResult>;
-    updateUsedRoutes(usedRoutes: string[], gcTimestamp?: number): void;
+    updateUsedRoutes(usedRoutes: string[]): void;
 }
 
-// @public (undocumented)
+// @public
 export interface ISummaryStats {
     // (undocumented)
     blobNodeCount: number;
@@ -368,12 +441,24 @@ export interface ISummaryStats {
     unreferencedBlobSize: number;
 }
 
-// @public (undocumented)
+// @public
 export interface ISummaryTreeWithStats {
-    // (undocumented)
     stats: ISummaryStats;
-    // (undocumented)
     summary: ISummaryTree;
+}
+
+// @public
+export interface ITelemetryContext {
+    get(prefix: string, property: string): TelemetryEventPropertyType;
+    serialize(): string;
+    set(prefix: string, property: string, value: TelemetryEventPropertyType): void;
+    setMultiple(prefix: string, property: string, values: Record<string, TelemetryEventPropertyType>): void;
+}
+
+// @alpha
+export interface LocalAttributionKey {
+    // (undocumented)
+    type: "local";
 }
 
 // @public
@@ -382,8 +467,52 @@ export type NamedFluidDataStoreRegistryEntries = Iterable<NamedFluidDataStoreReg
 // @public
 export type NamedFluidDataStoreRegistryEntry = [string, Promise<FluidDataStoreRegistryEntry>];
 
+// @alpha
+export interface OpAttributionKey {
+    seq: number;
+    type: "op";
+}
+
+// @public
+export type OpSpaceCompressedId = number & {
+    readonly OpNormalized: "9209432d-a959-4df7-b2ad-767ead4dbcae";
+};
+
+// @public
+export type SerializedIdCompressor = string & {
+    readonly _serializedIdCompressor: "8c73c57c-1cf4-4278-8915-6444cb4f6af5";
+};
+
+// @public
+export type SerializedIdCompressorWithNoSession = SerializedIdCompressor & {
+    readonly _noLocalState: "3aa2e1e8-cc28-4ea7-bc1a-a11dc3f26dfb";
+};
+
+// @public
+export type SerializedIdCompressorWithOngoingSession = SerializedIdCompressor & {
+    readonly _hasLocalState: "1281acae-6d14-47e7-bc92-71c8ee0819cb";
+};
+
+// @public
+export type SessionId = StableId & {
+    readonly SessionId: "4498f850-e14e-4be9-8db0-89ec00997e58";
+};
+
+// @public
+export type SessionSpaceCompressedId = number & {
+    readonly SessionUnique: "cea55054-6b82-4cbf-ad19-1fa645ea3b3e";
+};
+
+// @public
+export type StableId = string & {
+    readonly StableId: "53172b0d-a3d5-41ea-bd75-b43839c97f5a";
+};
+
 // @public (undocumented)
-export type SummarizeInternalFn = (fullTree: boolean, trackState: boolean) => Promise<ISummarizeInternalResult>;
+export type SummarizeInternalFn = (fullTree: boolean, trackState: boolean, telemetryContext?: ITelemetryContext, incrementalSummaryContext?: IExperimentalIncrementalSummaryContext) => Promise<ISummarizeInternalResult>;
+
+// @public (undocumented)
+export const totalBlobSizePropertyName = "TotalBlobSize";
 
 // @public
 const VisibilityState_2: {

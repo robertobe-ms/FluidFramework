@@ -2,6 +2,27 @@
 
 The azure-client package provides a simple and powerful way to consume collaborative Fluid data with the Azure Fluid Relay service.
 
+<!-- AUTO-GENERATED-CONTENT:START (README_DEPENDENCY_GUIDELINES_SECTION:includeHeading=TRUE) -->
+
+<!-- prettier-ignore-start -->
+<!-- NOTE: This section is automatically generated using @fluid-tools/markdown-magic. Do not update these generated contents directly. -->
+
+## Using Fluid Framework libraries
+
+When taking a dependency on a Fluid Framework library, we recommend using a `^` (caret) version range, such as `^1.3.4`.
+While Fluid Framework libraries may use different ranges with interdependencies between other Fluid Framework libraries,
+library consumers should always prefer `^`.
+
+Note that when depending on a library version of the form `2.0.0-internal.x.y.z`, called the Fluid internal version scheme,
+you must use a `>= <` dependency range (such as `>=2.0.0-internal.x.y.z <2.0.0-internal.w.0.0` where `w` is `x+1`).
+Standard `^` and `~` ranges will not work as expected.
+See the [@fluid-tools/version-tools](https://github.com/microsoft/FluidFramework/blob/main/build-tools/packages/version-tools/README.md)
+package for more information including tools to convert between version schemes.
+
+<!-- prettier-ignore-end -->
+
+<!-- AUTO-GENERATED-CONTENT:END -->
+
 ## Using azure-client
 
 The azure-client package has a `AzureClient` class that allows you to interact with Fluid.
@@ -16,7 +37,7 @@ Fluid requires a backing service to enable collaborative communication. The `Azu
 
 NOTE: You can use one instance of the `AzureClient` to create/fetch multiple containers from the same Azure Fluid Relay service instance.
 
-In the example below we will walk through both connecting to a a live Azure Fluid Relay service instance by providing the tenant ID and key that is uniquely generated for us when onboarding to the service, as well as using a tenant ID of "local" for development purposes to run our application against the local service. We make use of `AzureFunctionTokenProvider` for token generation while running against a live Azure Fluid Relay instance and `InsecureTokenProvider`, from the `@fluidframework/test-client-utils` package, to authenticate a given user for access to the service locally. The `AzureFunctionTokenProvider` is an implementation that fulfills the `ITokenProvider` interface without exposing the tenant key secret in client-side code.
+In the example below we will walk through both connecting to a a live Azure Fluid Relay service instance by providing the tenant ID and key that is uniquely generated for us when onboarding to the service, as well as an example of running our application against the local service. We make use of `AzureFunctionTokenProvider` for token generation while running against a live Azure Fluid Relay instance and `InsecureTokenProvider`, from the `@fluidframework/test-client-utils` package, to authenticate a given user for access to the service locally. The `AzureFunctionTokenProvider` is an implementation that fulfills the `ITokenProvider` interface without exposing the tenant key secret in client-side code.
 
 ### Backed Locally
 
@@ -26,19 +47,18 @@ To run the local Azure Fluid Relay service with the default values of `localhost
 npx @fluidframework/azure-local-service@latest
 ```
 
-Now, with our local service running in the background, we need to connect the application to it. For this, we first need to create our `ITokenProvider` instance to authenticate the current user to the service. For this, we can use the `InsecureTokenProvider` where we can pass anything into the key (since we are running locally) and an object identifying the current user. Both our orderer and storage URLs will point to the domain and port that our local Azure Fluid Relay service instance is running at. Lastly, to differentiate local mode from remote mode, we are passing in `LOCAL_MODE_TENANT_ID` as tenant ID.
+Now, with our local service running in the background, we need to connect the application to it. For this, we first need to create our `ITokenProvider` instance to authenticate the current user to the service. For this, we can use the `InsecureTokenProvider` where we can pass anything into the key (since we are running locally) and an object identifying the current user. Our endpoint URL will point to the domain and port that our local Azure Fluid Relay service instance is running at. Lastly, to differentiate local mode from remote mode, we set the `type` to `"local"` or `"remote"` respectively.
 
 ```typescript
-import { AzureClient, AzureConnectionConfig, LOCAL_MODE_TENANT_ID } from "@fluidframework/azure-client";
+import { AzureClient, AzureConnectionConfig } from "@fluidframework/azure-client";
 import { InsecureTokenProvider } from "@fluidframework/test-client-utils";
 
 const clientProps = {
-    connection: {
-        tenantId: LOCAL_MODE_TENANT_ID,
-        tokenProvider: new InsecureTokenProvider("fooBar", { id: "123", name: "Test User" }),
-        orderer: "http://localhost:7070",
-        storage: "http://localhost:7070",
-    },
+	connection: {
+		type: "local",
+		tokenProvider: new InsecureTokenProvider("fooBar", { id: "123", name: "Test User" }),
+		endpoint: "http://localhost:7070",
+	},
 };
 const azureClient = new AzureClient(clientProps);
 ```
@@ -51,18 +71,24 @@ When running against a live Azure Fluid Relay instance, we can use the same inte
 import { AzureClient, AzureConnectionConfig } from "@fluidframework/azure-client";
 
 const clientProps = {
-    connection: {
-        tenantId: "YOUR-TENANT-ID-HERE",
-        tokenProvider: new AzureFunctionTokenProvider(
-            "AZURE-FUNCTION-URL"+"/api/GetAzureToken",
-            { userId: "test-user",userName: "Test User" }
-        ),
-        orderer: "ENTER-ORDERER-URL-HERE",
-        storage: "ENTER-STORAGE-URL-HERE",
-    },
+	connection: {
+		type: "remote",
+		tenantId: "YOUR-TENANT-ID-HERE",
+		tokenProvider: new AzureFunctionTokenProvider("AZURE-FUNCTION-URL" + "/api/GetAzureToken", {
+			userId: "test-user",
+			userName: "Test User",
+		}),
+		endpoint: "ENTER-SERVICE-DISCOVERY-URL-HERE",
+	},
 };
 const azureClient = new AzureClient(clientProps);
 ```
+
+### Experimental Features
+
+`AzureClient` supports the ability to instantiate with experimental features enabled.
+These features are experimental in nature and should **NOT** be used in production applications.
+To learn more, see [Experimental Features](https://fluidframework.com/docs/build/experimental-features/).
 
 ## Fluid Containers
 
@@ -78,11 +104,13 @@ See [`ContainerSchema`](./src/types.ts) in [`./src/types/ts`](./src/types.ts) fo
 
 ```typescript
 const schema = {
-    initialObjects: {
-        /* ... */
-    },
-    dynamicObjectTypes: [ /*...*/ ],
-}
+	initialObjects: {
+		/* ... */
+	},
+	dynamicObjectTypes: [
+		/*...*/
+	],
+};
 const azureClient = new AzureClient(props);
 const { container, services } = await azureClient.createContainer(schema);
 
@@ -114,11 +142,11 @@ The most common way to use Fluid is through initial collaborative objects that a
 // Define the keys and types of the initial list of collaborative objects.
 // Here, we are using a SharedMap DDS on key "map1" and a SharedString on key "text1".
 const schema = {
-    initialObjects: {
-        map1: SharedMap,
-        text1: SharedString,
-    }
-}
+	initialObjects: {
+		map1: SharedMap,
+		text1: SharedString,
+	},
+};
 
 // Fetch back the container that had been created earlier with the same ID and schema
 const { container, services } = await azureClient.getContainer("_unique-id_", schema);
@@ -140,11 +168,11 @@ Dynamic objects are loaded on-demand to optimize for data virtualization. To get
 
 ```typescript
 const schema = {
-    initialObjects: {
-        map1: SharedMap,
-    },
-    dynamicObjectTypes: [ SharedString ],
-}
+	initialObjects: {
+		map1: SharedMap,
+	},
+	dynamicObjectTypes: [SharedString],
+};
 
 const { container, services } = await azureClient.getContainer("_unique-id_", schema);
 const map1 = container.initialObjects.map1;
@@ -162,4 +190,66 @@ const text1 = await map1.get(); // Resolve the handle to get the object
 const text1 = await map1.get("text1-unique-id").get();
 ```
 
-See [GitHub](https://github.com/microsoft/FluidFramework) for more details on the Fluid Framework and packages within.
+<!-- AUTO-GENERATED-CONTENT:START (README_CONTRIBUTION_GUIDELINES_SECTION:includeHeading=TRUE) -->
+
+<!-- prettier-ignore-start -->
+<!-- NOTE: This section is automatically generated using @fluid-tools/markdown-magic. Do not update these generated contents directly. -->
+
+## Contribution Guidelines
+
+There are many ways to [contribute](https://github.com/microsoft/FluidFramework/blob/main/CONTRIBUTING.md) to Fluid.
+
+-   Participate in Q&A in our [GitHub Discussions](https://github.com/microsoft/FluidFramework/discussions).
+-   [Submit bugs](https://github.com/microsoft/FluidFramework/issues) and help us verify fixes as they are checked in.
+-   Review the [source code changes](https://github.com/microsoft/FluidFramework/pulls).
+-   [Contribute bug fixes](https://github.com/microsoft/FluidFramework/blob/main/CONTRIBUTING.md).
+
+Detailed instructions for working in the repo can be found in the [Wiki](https://github.com/microsoft/FluidFramework/wiki).
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+This project may contain Microsoft trademarks or logos for Microsoft projects, products, or services.
+Use of these trademarks or logos must follow Microsoft’s [Trademark & Brand Guidelines](https://www.microsoft.com/trademarks).
+Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
+
+<!-- prettier-ignore-end -->
+
+<!-- AUTO-GENERATED-CONTENT:END -->
+
+<!-- AUTO-GENERATED-CONTENT:START (README_HELP_SECTION:includeHeading=TRUE) -->
+
+<!-- prettier-ignore-start -->
+<!-- NOTE: This section is automatically generated using @fluid-tools/markdown-magic. Do not update these generated contents directly. -->
+
+## Help
+
+Not finding what you're looking for in this README? Check out our [GitHub
+Wiki](https://github.com/microsoft/FluidFramework/wiki) or [fluidframework.com](https://fluidframework.com/docs/).
+
+Still not finding what you're looking for? Please [file an
+issue](https://github.com/microsoft/FluidFramework/wiki/Submitting-Bugs-and-Feature-Requests).
+
+Thank you!
+
+<!-- prettier-ignore-end -->
+
+<!-- AUTO-GENERATED-CONTENT:END -->
+
+<!-- AUTO-GENERATED-CONTENT:START (README_TRADEMARK_SECTION:includeHeading=TRUE) -->
+
+<!-- prettier-ignore-start -->
+<!-- NOTE: This section is automatically generated using @fluid-tools/markdown-magic. Do not update these generated contents directly. -->
+
+## Trademark
+
+This project may contain Microsoft trademarks or logos for Microsoft projects, products, or services.
+
+Use of these trademarks or logos must follow Microsoft's [Trademark & Brand
+Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
+
+Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
+
+<!-- prettier-ignore-end -->
+
+<!-- AUTO-GENERATED-CONTENT:END -->

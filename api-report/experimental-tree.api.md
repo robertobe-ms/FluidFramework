@@ -10,18 +10,18 @@ import { IChannelAttributes } from '@fluidframework/datastore-definitions';
 import { IChannelFactory } from '@fluidframework/datastore-definitions';
 import { IChannelServices } from '@fluidframework/datastore-definitions';
 import { IChannelStorageService } from '@fluidframework/datastore-definitions';
-import { IDisposable } from '@fluidframework/common-definitions';
-import { IErrorEvent } from '@fluidframework/common-definitions';
+import { IDisposable } from '@fluidframework/core-interfaces';
+import { IErrorEvent } from '@fluidframework/core-interfaces';
 import { IFluidDataStoreRuntime } from '@fluidframework/datastore-definitions';
 import { IFluidSerializer } from '@fluidframework/shared-object-base';
 import { ISharedObjectEvents } from '@fluidframework/shared-object-base';
 import { ISummaryTreeWithStats } from '@fluidframework/runtime-definitions';
-import { ITelemetryBaseEvent } from '@fluidframework/common-definitions';
-import { ITelemetryLogger } from '@fluidframework/common-definitions';
-import { ITelemetryProperties } from '@fluidframework/common-definitions';
+import { ITelemetryBaseEvent } from '@fluidframework/core-interfaces';
+import { ITelemetryLoggerExt } from '@fluidframework/telemetry-utils';
+import { ITelemetryProperties } from '@fluidframework/core-interfaces';
 import type { Serializable } from '@fluidframework/datastore-definitions';
 import { SharedObject } from '@fluidframework/shared-object-base';
-import { TypedEventEmitter } from '@fluidframework/common-utils';
+import { TypedEventEmitter } from '@fluid-internal/client-utils';
 
 // @public
 export function areRevisionViewsSemanticallyEqual(treeViewA: TreeView, idConverterA: NodeIdConverter, treeViewB: TreeView, idConverterB: NodeIdConverter): boolean;
@@ -155,8 +155,12 @@ export enum ChangeTypeInternal {
 export abstract class Checkout extends EventEmitterWithErrorHandling<ICheckoutEvents> implements IDisposable {
     protected constructor(tree: SharedTree, currentView: RevisionView, onEditCommitted: EditCommittedHandler);
     abortEdit(): void;
-    applyChanges(...changes: Change[]): void;
-    applyEdit(...changes: Change[]): EditId;
+    applyChanges(changes: readonly Change[]): void;
+    // (undocumented)
+    applyChanges(...changes: readonly Change[]): void;
+    applyEdit(changes: readonly Change[]): EditId;
+    // (undocumented)
+    applyEdit(...changes: readonly Change[]): EditId;
     closeEdit(): EditId;
     // (undocumented)
     get currentView(): TreeView;
@@ -175,8 +179,12 @@ export abstract class Checkout extends EventEmitterWithErrorHandling<ICheckoutEv
     rebaseCurrentEdit(): EditValidationResult.Valid | EditValidationResult.Invalid;
     revert(editId: EditId): void;
     readonly tree: SharedTree;
-    protected tryApplyChangesInternal(...changes: ChangeInternal[]): EditStatus;
-    tryApplyEdit(...changes: Change[]): EditId | undefined;
+    protected tryApplyChangesInternal(changes: readonly ChangeInternal[]): EditStatus;
+    // (undocumented)
+    protected tryApplyChangesInternal(...changes: readonly ChangeInternal[]): EditStatus;
+    tryApplyEdit(changes: readonly Change[]): EditId | undefined;
+    // (undocumented)
+    tryApplyEdit(...changes: readonly Change[]): EditId | undefined;
     // (undocumented)
     abstract waitForEditsToSubmit(): Promise<void>;
     // (undocumented)
@@ -315,7 +323,7 @@ export interface EditCommittedEventArguments {
 // @public
 export type EditCommittedHandler = (args: EditCommittedEventArguments) => void;
 
-// @public
+// @public @deprecated
 export interface EditHandle<TChange> {
     // (undocumented)
     readonly baseHandle: FluidEditHandle;
@@ -439,6 +447,7 @@ export class GenericTransaction {
     get changes(): readonly ChangeInternal[];
     // (undocumented)
     close(): EditingResult;
+    get failure(): TransactionInternal.Failure | undefined;
     get isOpen(): boolean;
     get status(): EditStatus;
     get steps(): readonly ReconciliationChange[];
@@ -452,7 +461,7 @@ export interface GenericTransactionPolicy {
     validateOnClose(state: SucceedingTransactionState): ChangeResult;
 }
 
-// @public
+// @public @deprecated
 function getSerializedUploadedEditChunkContents(sharedTree: SharedTree): Promise<string>;
 export { getSerializedUploadedEditChunkContents }
 export { getSerializedUploadedEditChunkContents as getUploadedEditChunkContents }
@@ -520,8 +529,6 @@ export type InternedStringId = number & {
     readonly InternedStringId: 'e221abc9-9d17-4493-8db0-70c871a1c27c';
 };
 
-// Warning: (ae-internal-missing-underscore) The name "isDetachedSequenceId" should be prefixed with an underscore because the declaration is marked as @internal
-//
 // @internal
 export function isDetachedSequenceId(node: DetachedSequenceId | object): node is DetachedSequenceId;
 
@@ -556,7 +563,10 @@ export type LocalCompressedId = number & {
 
 // @public
 export interface LogViewer {
+    // @deprecated
     getRevisionView(revision: Revision): Promise<RevisionView>;
+    getRevisionViewInMemory(revision: Revision): RevisionView;
+    // @deprecated
     getRevisionViewInSession(revision: Revision): RevisionView;
 }
 
@@ -630,17 +640,21 @@ export interface NodeInTrait {
 // @public @sealed
 export interface OrderedEditSet<TChange = unknown> {
     readonly editIds: readonly EditId[];
-    // (undocumented)
+    // @deprecated (undocumented)
     getEditAtIndex(index: number): Promise<Edit<TChange>>;
-    // (undocumented)
+    // @deprecated (undocumented)
     getEditInSessionAtIndex(index: number): Edit<TChange>;
     // (undocumented)
     getIdAtIndex(index: number): EditId;
     // (undocumented)
     getIndexOfId(editId: EditId): number;
     readonly length: number;
-    // (undocumented)
+    // @deprecated (undocumented)
     tryGetEdit(editId: EditId): Promise<Edit<TChange> | undefined>;
+    // (undocumented)
+    tryGetEditAtIndex(index: number): Edit<TChange> | undefined;
+    // (undocumented)
+    tryGetEditFromId(editId: EditId): Edit<TChange> | undefined;
     // (undocumented)
     tryGetIndexOfId(editId: EditId): number | undefined;
 }
@@ -767,7 +781,7 @@ export class RevisionView extends TreeView {
 // @public
 export interface SequencedEditAppliedEventArguments {
     readonly edit: Edit<ChangeInternal>;
-    readonly logger: ITelemetryLogger;
+    readonly logger: ITelemetryLoggerExt;
     readonly outcome: EditApplicationOutcome;
     readonly reconciliationPath: ReconciliationPath;
     readonly tree: SharedTree;
@@ -817,12 +831,12 @@ export interface SetValueInternal_0_0_2 {
 export class SharedTree extends SharedObject<ISharedTreeEvents> implements NodeIdContext {
     constructor(runtime: IFluidDataStoreRuntime, id: string, ...args: SharedTreeArgs<WriteFormat.v0_0_2>);
     constructor(runtime: IFluidDataStoreRuntime, id: string, ...args: SharedTreeArgs<WriteFormat.v0_1_1>);
-    applyEdit(...changes: Change[]): Edit<InternalizedChange>;
+    applyEdit(...changes: readonly Change[]): Edit<InternalizedChange>;
     // (undocumented)
-    applyEdit(changes: Change[]): Edit<InternalizedChange>;
+    applyEdit(changes: readonly Change[]): Edit<InternalizedChange>;
     // @internal
     applyEditInternal(editOrChanges: Edit<ChangeInternal> | readonly ChangeInternal[]): Edit<ChangeInternal>;
-    protected applyStashedOp(op: unknown): void;
+    protected applyStashedOp(op: unknown): StashedLocalOpMetadata;
     attributeNodeId(id: NodeId): AttributionId;
     get attributionId(): AttributionId;
     convertToNodeId(id: StableNodeId): NodeId;
@@ -838,6 +852,7 @@ export class SharedTree extends SharedObject<ISharedTreeEvents> implements NodeI
     static getFactory(...args: SharedTreeArgs<WriteFormat.v0_0_2>): SharedTreeFactory;
     // (undocumented)
     static getFactory(...args: SharedTreeArgs<WriteFormat.v0_1_1>): SharedTreeFactory;
+    static getFactory(): SharedTreeFactory;
     // (undocumented)
     getRuntime(): IFluidDataStoreRuntime;
     getWriteFormat(): WriteFormat;
@@ -849,8 +864,7 @@ export class SharedTree extends SharedObject<ISharedTreeEvents> implements NodeI
     loadSerializedSummary(blobData: string): ITelemetryProperties;
     // @internal
     loadSummary(summary: SharedTreeSummaryBase): void;
-    // (undocumented)
-    protected readonly logger: ITelemetryLogger;
+    readonly logger: ITelemetryLoggerExt;
     get logViewer(): LogViewer;
     mergeEditsFrom(other: SharedTree, edits: Iterable<Edit<InternalizedChange>>, stableIdRemapper?: (id: StableNodeId) => StableNodeId): EditId[];
     // (undocumented)
@@ -859,6 +873,8 @@ export class SharedTree extends SharedObject<ISharedTreeEvents> implements NodeI
     protected processCore(message: unknown, local: boolean): void;
     // (undocumented)
     protected registerCore(): void;
+    // (undocumented)
+    protected reSubmitCore(op: unknown, localOpMetadata?: StashedLocalOpMetadata): void;
     revert(editId: EditId): EditId | undefined;
     // @internal
     revertChanges(changes: readonly InternalizedChange[], before: RevisionView): ChangeInternal[] | undefined;
@@ -881,6 +897,12 @@ export type SharedTreeArgs<WF extends WriteFormat = WriteFormat> = [writeFormat:
 export const sharedTreeAssertionErrorType = "SharedTreeAssertion";
 
 // @public
+export interface SharedTreeBaseOptions {
+    editEvictionFrequency?: number;
+    inMemoryHistorySize?: number;
+}
+
+// @public
 export enum SharedTreeDiagnosticEvent {
     AppliedEdit = "appliedEdit",
     CatchUpBlobUploaded = "uploadedCatchUpBlob",
@@ -899,8 +921,7 @@ export enum SharedTreeEvent {
 
 // @public
 export class SharedTreeFactory implements IChannelFactory {
-    constructor(...args: SharedTreeArgs<WriteFormat.v0_0_2>);
-    constructor(...args: SharedTreeArgs<WriteFormat.v0_1_1>);
+    constructor(...args: SharedTreeArgs);
     // (undocumented)
     static Attributes: IChannelAttributes;
     // (undocumented)
@@ -928,7 +949,7 @@ export class SharedTreeMergeHealthTelemetryHeartbeat {
 }
 
 // @public
-export type SharedTreeOptions<WF extends WriteFormat, HistoryCompatibility extends 'Forwards' | 'None' = 'Forwards'> = Omit<WF extends WriteFormat.v0_0_2 ? SharedTreeOptions_0_0_2 : WF extends WriteFormat.v0_1_1 ? SharedTreeOptions_0_1_1 : never, HistoryCompatibility extends 'Forwards' ? 'summarizeHistory' : never>;
+export type SharedTreeOptions<WF extends WriteFormat, HistoryCompatibility extends 'Forwards' | 'None' = 'Forwards'> = SharedTreeBaseOptions & Omit<WF extends WriteFormat.v0_0_2 ? SharedTreeOptions_0_0_2 : WF extends WriteFormat.v0_1_1 ? SharedTreeOptions_0_1_1 : never, HistoryCompatibility extends 'Forwards' ? 'summarizeHistory' : never>;
 
 // @public
 export interface SharedTreeOptions_0_0_2 {
@@ -1040,6 +1061,11 @@ export interface StableRangeInternal_0_0_2 {
 }
 
 // @public
+export interface StashedLocalOpMetadata {
+    transformedEdit?: Edit<ChangeInternal>;
+}
+
+// @public
 export interface StringInterner {
     // (undocumented)
     getInternedId(input: string): InternedStringId | undefined;
@@ -1098,9 +1124,9 @@ export type TraitNodeIndex = number & {
 // @public
 export class Transaction extends TypedEventEmitter<TransactionEvents> {
     constructor(tree: SharedTree);
-    apply(...changes: Change[]): EditStatus;
+    apply(...changes: readonly Change[]): EditStatus;
     // (undocumented)
-    apply(changes: Change[]): EditStatus;
+    apply(changes: readonly Change[]): EditStatus;
     closeAndCommit(): void;
     get currentView(): TreeView;
     get isOpen(): boolean;

@@ -3,7 +3,8 @@
  * Licensed under the MIT License.
  */
 
-import { assert, copyPropertyIfDefined, fail, Result } from './Common';
+import { assert } from '@fluidframework/core-utils';
+import { assertWithMessage, copyPropertyIfDefined, fail, Result } from './Common';
 import { NodeId, DetachedSequenceId, TraitLabel, isDetachedSequenceId } from './Identifiers';
 import { rangeFromStableRange } from './TreeViewUtilities';
 import {
@@ -236,9 +237,16 @@ export class GenericTransaction {
 		return this.state.steps;
 	}
 
+	/**
+	 * Information about why the transaction failed. Defined if and only if `status` is invalid or malformed.
+	 */
+	public get failure(): TransactionInternal.Failure | undefined {
+		return (this.state as FailingTransactionState).failure;
+	}
+
 	/** @returns the final `EditStatus` and `TreeView` after all changes are applied. */
 	public close(): EditingResult {
-		assert(this.open, 'transaction has already been closed');
+		assert(this.open, 0x638 /* transaction has already been closed */);
 		this.open = false;
 		if (this.state.status === EditStatus.Applied) {
 			const validation = this.policy.validateOnClose(this.state);
@@ -336,7 +344,7 @@ export class GenericTransaction {
 	 * @returns this
 	 */
 	public applyChange(change: ChangeInternal, path: ReconciliationPath = []): this {
-		assert(this.open, 'Editor must be open to apply changes.');
+		assert(this.open, 0x639 /* Editor must be open to apply changes. */);
 		if (this.state.status !== EditStatus.Applied) {
 			fail('Cannot apply change to an edit unless all previous changes have applied');
 		}
@@ -347,19 +355,17 @@ export class GenericTransaction {
 		}
 		const resolvedChange = resolutionResult.result;
 		const changeResult = this.policy.dispatchChange(this.state, resolvedChange);
-		if (Result.isOk(changeResult)) {
-			this.state = {
-				status: EditStatus.Applied,
-				view: changeResult.result,
-				changes: this.changes.concat(change),
-				steps: this.steps.concat({ resolvedChange, after: changeResult.result }),
-			};
-		} else {
-			this.state = {
-				...this.state,
-				...changeResult.error,
-			};
-		}
+		this.state = Result.isOk(changeResult)
+			? {
+					status: EditStatus.Applied,
+					view: changeResult.result,
+					changes: this.changes.concat(change),
+					steps: this.steps.concat({ resolvedChange, after: changeResult.result }),
+			  }
+			: {
+					...this.state,
+					...changeResult.error,
+			  };
 		return this;
 	}
 }
@@ -421,6 +427,7 @@ export interface GenericTransactionPolicy {
  * the results from `close` must be used to actually submit an `Edit`.
  * @public
  */
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace TransactionInternal {
 	/**
 	 * Makes a new {@link GenericTransaction} that follows the {@link TransactionInternal.Policy} policy.
@@ -645,8 +652,8 @@ export namespace TransactionInternal {
 
 		private applyConstraint(state: ValidState, change: ConstraintInternal): ChangeResult {
 			// TODO: Implement identityHash and contentHash
-			assert(change.identityHash === undefined, 'identityHash constraint is not implemented');
-			assert(change.contentHash === undefined, 'contentHash constraint is not implemented');
+			assert(change.identityHash === undefined, 0x63a /* identityHash constraint is not implemented */);
+			assert(change.contentHash === undefined, 0x63b /* contentHash constraint is not implemented */);
 
 			const validatedChange = validateStableRange(state.view, change.toConstrain);
 			if (validatedChange.result !== RangeValidationResultKind.Valid) {
@@ -767,7 +774,7 @@ export namespace TransactionInternal {
 			}
 			while (unprocessed.length > 0) {
 				const node = unprocessed.pop();
-				assert(node !== undefined && !isDetachedSequenceId(node));
+				assertWithMessage(node !== undefined && !isDetachedSequenceId(node));
 				const traits = new Map<TraitLabel, readonly NodeId[]>();
 				// eslint-disable-next-line no-restricted-syntax
 				for (const key in node.traits) {

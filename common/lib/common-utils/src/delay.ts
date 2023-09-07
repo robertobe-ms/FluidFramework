@@ -4,8 +4,10 @@
  */
 
 /**
- * Returns a promise that resolves after timeMs
- * @param timeMs - time in milliseconds to wait
+ * Returns a promise that resolves after `timeMs`.
+ * @param timeMs - Time in milliseconds to wait.
+ *
+ * @deprecated Moved to the `@fluidframework/core-utils` package.
  */
 export const delay = async (timeMs: number): Promise<void> =>
-    new Promise((resolve) => setTimeout(() => resolve(), timeMs));
+	new Promise((resolve) => setTimeout(() => resolve(), timeMs));

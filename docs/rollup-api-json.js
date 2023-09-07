@@ -15,6 +15,7 @@
  * create copies.
  */
 
+const chalk = require("chalk");
 const cpy = require("cpy");
 const findValue = require("deepdash/findValueDeep");
 const fs = require("fs-extra");
@@ -32,7 +33,7 @@ const outputPath = path.join(targetPath, "_build");
  * Given a package name, returns the unscoped name. If the package is unscoped the string is returned as-is.
  * @param {string} package
  */
-const packageName = (package) => package.includes("/") ? package.split("/")[1] : package;
+const packageName = (package) => (package.includes("/") ? package.split("/")[1] : package);
 
 /**
  * Extracts members (named exports) from an API JSON object.
@@ -41,14 +42,12 @@ const packageName = (package) => package.includes("/") ? package.split("/")[1] :
  * @param {string[]} members array of members to extract.
  */
 const extractMembersFromApiObject = (sourceApiObj, members) =>
-    members.map(
-        (importName) => {
-            // This filters the apiJson value to the first item whose name matches the import name
-            return findValue(sourceApiObj,
-                (value) => value.name === importName,
-                { childrenPath: "members.0.members" }
-            );
-        });
+	members.map((importName) => {
+		// This filters the apiJson value to the first item whose name matches the import name
+		return findValue(sourceApiObj, (value) => value.name === importName, {
+			childrenPath: "members.0.members",
+		});
+	});
 
 /**
  * Extracts members (named exports) from an API JSON file.
@@ -56,23 +55,23 @@ const extractMembersFromApiObject = (sourceApiObj, members) =>
  * @param {string} sourceFile path to the source API JSON file to extract members from.
  * @param {string[]} members array of members to extract.
  */
-const extractMembers = (sourceFile, members) => {
-    // First load the source API file...
-    console.log(`Extracting members from ${path.basename(sourceFile)}`);
-    const sourceApiObj = JSON.parse(fs.readFileSync(sourceFile, { encoding: "utf8" }));
+const extractMembers = async (sourceFile, members) => {
+	// First load the source API file...
+	console.log(`Extracting members from ${path.basename(sourceFile)}`);
+	const sourceApiObj = JSON.parse(await fs.readFile(sourceFile, { encoding: "utf8" }));
 
-    // ... then check if all members should be extracted, and if so, return them all...
-    if (members.length === 1 && members[0] === "*") {
-        // console.log("\tExtracting *");
-        const extractedMembers = sourceApiObj.members[0].members;
-        console.log(`\tExtracted ${extractedMembers.length} members (*)`);
-        return extractedMembers;
-    }
+	// ... then check if all members should be extracted, and if so, return them all...
+	if (members.length === 1 && members[0] === "*") {
+		// console.log("\tExtracting *");
+		const extractedMembers = sourceApiObj.members[0].members;
+		console.log(`\tExtracted ${extractedMembers.length} members (*)`);
+		return extractedMembers;
+	}
 
-    // ...otherwise extract the requested members and return them.
-    const extractedMembers = extractMembersFromApiObject(sourceApiObj, members);
-    console.log(`\tExtracted ${extractedMembers.length} members`);
-    return extractedMembers;
+	// ...otherwise extract the requested members and return them.
+	const extractedMembers = extractMembersFromApiObject(sourceApiObj, members);
+	console.log(`\tExtracted ${extractedMembers.length} members`);
+	return extractedMembers;
 };
 
 /**
@@ -83,93 +82,97 @@ const extractMembers = (sourceFile, members) => {
  * @param {string} targetPath Path where the combined API JSON files will be output.
  * @param {object} instructions Array of 'member combine data' objects.
  */
-const combineMembers = (sourcePath, targetPath, instructions) => {
-    // Iterate through the "instructions."
-    for (const { package, sourceImports, cleanOrigMembers } of instructions) {
-        /** The path to the API JSON file. */
-        const inputPackagePath = path.join(sourcePath, `${packageName(package)}.api.json`);
+const combineMembers = async (sourcePath, targetPath, instructions) => {
+	// Iterate through the "instructions."
+	for (const { package, sourceImports, cleanOrigMembers } of instructions) {
+		/** The path to the API JSON file. */
+		const inputPackagePath = path.join(sourcePath, `${packageName(package)}.api.json`);
 
-        /** The path where the rewritten file will be output. */
-        const outputPackagePath = path.join(targetPath, `${packageName(package)}.api.json`)
+		/** The path where the rewritten file will be output. */
+		const outputPackagePath = path.join(targetPath, `${packageName(package)}.api.json`);
 
-        // Iterate through each package that serves as an import source.
-        let extractedMembers = [];
-        for (const [sourcePackage, members] of sourceImports) {
-            // Extract the members from the source API JSON file and save them for later.
-            const sourceFile = path.join(sourcePath, `${packageName(sourcePackage)}.api.json`);
-            extractedMembers = extractedMembers.concat(extractMembers(sourceFile, members));
-        }
+		// Iterate through each package that serves as an import source.
+		let extractedMembers = [];
+		for (const [sourcePackage, members] of sourceImports) {
+			// Extract the members from the source API JSON file and save them for later.
+			const sourceFile = path.join(sourcePath, `${packageName(sourcePackage)}.api.json`);
+			extractedMembers = extractedMembers.concat(await extractMembers(sourceFile, members));
+		}
 
-        // Load the input API JSON file (the one that will be rewritten).
-        console.log(`Parsing ${inputPackagePath}`);
-        let jsonStr = fs.readFileSync(inputPackagePath, { encoding: "utf8" });
-        const rewrittenApiObj = JSON.parse(jsonStr);
+		// Load the input API JSON file (the one that will be rewritten).
+		console.log(`Parsing ${inputPackagePath}`);
+		let jsonStr = await fs.readFile(inputPackagePath, { encoding: "utf8" });
+		const rewrittenApiObj = JSON.parse(jsonStr);
 
-        // Optionally, delete original package members.
-        if (cleanOrigMembers) {
-            rewrittenApiObj.members[0].members = [];
-        }
-        console.log(`\t${rewrittenApiObj.members[0].members.length} members, adding ${extractedMembers.length}`);
+		// Optionally, delete original package members.
+		if (cleanOrigMembers) {
+			rewrittenApiObj.members[0].members = [];
+		}
+		console.log(
+			`\t${rewrittenApiObj.members[0].members.length} members, adding ${extractedMembers.length}`,
+		);
 
-        // Append the members extracted earlier.
-        const combinedMembers = rewrittenApiObj.members[0].members.concat(extractedMembers);
-        console.log(`\t= ${combinedMembers.length} total members`);
-        rewrittenApiObj.members[0].members = combinedMembers;
+		// Append the members extracted earlier.
+		const combinedMembers = rewrittenApiObj.members[0].members.concat(extractedMembers);
+		console.log(`\t= ${combinedMembers.length} total members`);
+		rewrittenApiObj.members[0].members = combinedMembers;
 
-        jsonStr = JSON.stringify(rewrittenApiObj, null, 2);
-        console.log(`Writing output file ${outputPackagePath}\n`);
-        fs.writeFileSync(outputPackagePath, jsonStr);
-    }
+		jsonStr = JSON.stringify(rewrittenApiObj, null, 2);
+		console.log(`Writing output file ${outputPackagePath}\n`);
+		await fs.writeFile(outputPackagePath, jsonStr);
+	}
 };
 
 const main = async () => {
-    // Clear output folders.
-    fs.emptyDirSync(stagingPath);
-    fs.emptyDirSync(outputPath);
+	// Clear output folders.
+	await fs.emptyDir(stagingPath);
+	await fs.emptyDir(outputPath);
 
-    const websitePackageFiles = data.websitePackages.map(
-        (p) => `${packageName(p)}.api.json`
-    );
+	const apiExtractorInputDir = path.resolve("..", "_api-extractor-temp", "doc-models");
 
-    // Copy all the files to staging that need to be present for member processing.
-    const stagedPackageFiles = data.allStagingPackages.map(
-        (p) => `${packageName(p)}.api.json`
-    );
-    await cpy(stagedPackageFiles, stagingPath, { cwd: originalPath });
+	// Copy all the files to staging that need to be present for member processing.
+	await cpy(apiExtractorInputDir, stagingPath);
 
-    // Combine members.
-    combineMembers(stagingPath, stagingPath, data.memberCombineInstructions);
+	// Combine members.
+	await combineMembers(stagingPath, stagingPath, data.memberCombineInstructions);
 
-    // Rewrite any remaining references in the output files using replace-in-files
-    const from = [];
-    const to = [];
+	// Rewrite any remaining references in the output files using replace-in-files
+	const from = [];
+	const to = [];
 
-    for (const [searchString, replacement] of data.stringReplacements) {
-        from.push(new RegExp(searchString, "g"));
-        to.push(replacement);
-    }
+	for (const [searchString, replacement] of data.stringReplacements) {
+		from.push(new RegExp(searchString, "g"));
+		to.push(replacement);
+	}
 
-    try {
-        const options = {
-            files: `${path.resolve(stagingPath)}/**`,
-            from: from,
-            to: to,
-        };
+	try {
+		const options = {
+			files: `${path.resolve(stagingPath)}/**`,
+			from: from,
+			to: to,
+		};
 
-        const results = await replace(options);
-    }
-    catch (error) {
-        console.error("Error occurred:", error);
-    }
+		await replace(options);
+	} catch (error) {
+		console.error("Error occurred:", error);
+	}
 
-    // Copy all processed files that should be published on the site to the output dir.
-    console.log(`Copying final files from ${stagingPath} to ${outputPath}`)
-    await cpy(websitePackageFiles, outputPath, { cwd: stagingPath })
-        .on("progress", (progress) => {
-            if (progress.percent === 1) {
-                console.log(`\tCopied ${progress.totalFiles} files.`);
-            }
-        });
+	// Copy all processed files that should be published on the site to the output dir.
+	console.log(`Copying final files from ${stagingPath} to ${outputPath}`);
+	await cpy(stagingPath, outputPath).on("progress", (progress) => {
+		if (progress.percent === 1) {
+			console.log(`\tCopied ${progress.totalFiles} files.`);
+		}
+	});
 };
 
-main();
+main().then(
+	() => {
+		console.log(chalk.green("SUCCESS: API log files staged!"));
+		process.exit(0);
+	},
+	(error) => {
+		console.error("FAILURE: API log files could not be staged due to an error.", error);
+		process.exit(1);
+	},
+);

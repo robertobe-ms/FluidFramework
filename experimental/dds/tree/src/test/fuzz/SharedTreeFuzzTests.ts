@@ -9,15 +9,21 @@ import { expect } from 'chai';
 import {
 	AsyncGenerator,
 	chainAsync as chain,
+	describeFuzz,
 	makeRandom,
 	takeAsync as take,
 	performFuzzActionsAsync as performFuzzActionsBase,
 } from '@fluid-internal/stochastic-test-utils';
-import { setUpLocalServerTestSharedTree, testDocumentsPathBase } from '../utilities/TestUtilities';
+import {
+	setUpLocalServerTestSharedTree,
+	testDocumentsPathBase,
+	withContainerOffline,
+} from '../utilities/TestUtilities';
 import { WriteFormat } from '../../persisted-types';
 import { fail } from '../../Common';
 import { areRevisionViewsSemanticallyEqual } from '../../EditUtilities';
-import { FuzzTestState, EditGenerationConfig, Operation } from './Types';
+import { SharedTree } from '../../SharedTree';
+import { FuzzTestState, EditGenerationConfig, Operation, FuzzChange } from './Types';
 import { makeOpGenerator } from './Generators';
 
 const directory = join(testDocumentsPathBase, 'fuzz-tests');
@@ -52,26 +58,7 @@ export async function performFuzzActions(
 			edit: async (state, operation) => {
 				const { index, contents } = operation;
 				const { tree } = state.activeCollaborators[index];
-				switch (contents.fuzzType) {
-					case 'insert':
-						tree.applyEdit(contents.build, contents.insert);
-						break;
-
-					case 'delete':
-						tree.applyEdit(contents);
-						break;
-
-					case 'move':
-						tree.applyEdit(contents.detach, contents.insert);
-						break;
-
-					case 'setPayload':
-						tree.applyEdit(contents);
-						break;
-					default:
-						fail('Invalid edit.');
-						break;
-				}
+				applyFuzzChange(tree, contents);
 				return state;
 			},
 			join: async (state, operation) => {
@@ -91,6 +78,33 @@ export async function performFuzzActions(
 				treeList.splice(index, 1);
 				return state;
 			},
+			stash: async (state, operation) => {
+				const { index, contents, writeFormat, summarizeHistory } = operation;
+				const testObjectProvider =
+					state.testObjectProvider ?? fail('Attempted to synchronize with undefined testObjectProvider');
+
+				const { container, tree } = state.activeCollaborators[index];
+				await testObjectProvider.ensureSynchronized();
+				const { pendingLocalState } = await withContainerOffline(testObjectProvider, container, () => {
+					applyFuzzChange(tree, contents);
+				});
+
+				const {
+					container: newContainer,
+					tree: newTree,
+					testObjectProvider: newTestObjectProvider,
+				} = await setUpLocalServerTestSharedTree({
+					writeFormat,
+					summarizeHistory,
+					testObjectProvider,
+					pendingLocalState,
+				});
+
+				state.activeCollaborators.splice(index, 1, { container: newContainer, tree: newTree });
+				await newTestObjectProvider.ensureSynchronized();
+				await newTestObjectProvider.ensureSynchronized(); // Synchronize twice in case stashed ops caused an upgrade round-trip
+				return { ...state, testObjectProvider: newTestObjectProvider };
+			},
 			synchronize: async (state) => {
 				const { testObjectProvider } = state;
 				if (testObjectProvider === undefined) {
@@ -106,9 +120,10 @@ export async function performFuzzActions(
 						const editLogB = tree.edits;
 						const minEdits = Math.min(editLogA.length, editLogB.length);
 						for (let j = 0; j < minEdits - 1; j++) {
-							const editA = await editLogA.getEditAtIndex(editLogA.length - j - 1);
-							const editB = await editLogB.getEditAtIndex(editLogB.length - j - 1);
-							expect(editA.id).to.equal(editB.id);
+							const editA = editLogA.tryGetEditAtIndex(editLogA.length - j - 1);
+							const editB = editLogB.tryGetEditAtIndex(editLogB.length - j - 1);
+							expect(editA).to.not.be.undefined;
+							expect(editA?.id).to.equal(editB?.id);
 						}
 						expect(areRevisionViewsSemanticallyEqual(tree.currentView, tree, first.currentView, first)).to
 							.be.true;
@@ -134,12 +149,21 @@ export async function performFuzzActions(
 			await finalState.testObjectProvider.ensureSynchronized();
 			const events = finalState.testObjectProvider.logger.reportAndClearTrackedEvents();
 			expect(events.expectedNotFound.length).to.equal(0);
-			// Tolerate failed edit chunk uploads, because they are fire-and-forget and can fail (e.g. the uploading client leaves before upload completes).
-			expect(
-				events.unexpectedErrors.every(
-					(e) => e.eventName === 'fluid:telemetry:FluidDataStoreRuntime:SharedTree:EditChunkUploadFailure'
-				)
-			).to.be.true;
+			for (const event of events.unexpectedErrors) {
+				switch (event.eventName) {
+					// Tolerate failed edit chunk uploads, because they are fire-and-forget and can fail (e.g. the uploading client leaves before upload completes).
+					case 'fluid:telemetry:FluidDataStoreRuntime:SharedTree:EditChunkUploadFailure':
+					// TODO:#1120
+					case 'fluid:telemetry:OrderedClientElection:InitialElectedClientNotFound':
+					// Summary nacks can happen as part of normal operation and are handled by the framework
+					case 'fluid:telemetry:Summarizer:Running:SummaryNack':
+					case 'fluid:telemetry:Summarizer:summarizingError':
+					case 'fluid:telemetry:Summarizer:Running:Summarize_cancel':
+						break;
+					default:
+						expect.fail(`Unexpected error event: ${event.eventName}`);
+				}
+			}
 		}
 		const trees = [
 			...finalState.activeCollaborators.map(({ tree }) => tree),
@@ -157,7 +181,7 @@ export function runSharedTreeFuzzTests(title: string): void {
 	// Some useful tips for debugging fuzz tests:
 	// - A JSON dump of the operation sequence can be written to disk by passing `true` for `saveOnFailure`.
 	// - Different shared-tree instances can be distinguished (e.g. in logs) by using `tree.getRuntime().clientId`
-	describe(title, () => {
+	describeFuzz(title, ({ testCount }) => {
 		function runTest(
 			generatorFactory: () => AsyncGenerator<Operation, FuzzTestState>,
 			seed: number,
@@ -273,7 +297,6 @@ export function runSharedTreeFuzzTests(title: string): void {
 			});
 		}
 
-		const testCount = 1;
 		const testLength = 200;
 		describe('with no-history summarization', () => {
 			runMixedVersionTests(false, testCount, testLength);
@@ -283,4 +306,26 @@ export function runSharedTreeFuzzTests(title: string): void {
 			runMixedVersionTests(true, testCount, testLength);
 		});
 	});
+}
+
+function applyFuzzChange(tree: SharedTree, contents: FuzzChange): void {
+	switch (contents.fuzzType) {
+		case 'insert':
+			tree.applyEdit(contents.build, contents.insert);
+			break;
+
+		case 'delete':
+			tree.applyEdit(contents);
+			break;
+
+		case 'move':
+			tree.applyEdit(contents.detach, contents.insert);
+			break;
+
+		case 'setPayload':
+			tree.applyEdit(contents);
+			break;
+		default:
+			fail('Invalid edit.');
+	}
 }

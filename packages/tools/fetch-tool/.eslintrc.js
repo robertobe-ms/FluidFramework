@@ -4,12 +4,9 @@
  */
 
 module.exports = {
-    "extends": [
-        "@fluidframework/eslint-config-fluid"
-    ],
-    "rules": {
-        "@typescript-eslint/no-use-before-define": "off",
-        "@typescript-eslint/strict-boolean-expressions": "off",
-        "import/no-internal-modules": "off"
-    }
-}
+	extends: [require.resolve("@fluidframework/eslint-config-fluid/minimal"), "prettier"],
+	rules: {
+		// This library is used in the browser, so we don't want dependencies on most node libraries.
+		"import/no-nodejs-modules": ["error", { allow: ["child_process", "fs", "url", "util"] }],
+	},
+};

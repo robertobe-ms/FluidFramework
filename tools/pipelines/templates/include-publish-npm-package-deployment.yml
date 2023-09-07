@@ -13,6 +13,9 @@ parameters:
 - name: feedName
   type: string
 
+- name: devFeedName
+  type: string
+
 - name: environment
   type: string
 
@@ -52,14 +55,12 @@ jobs:
           steps:
           - download: current
             artifact: pack
-          - task: UseNode@1
-            displayName: Use Node 14.x
-            inputs:
-              version: 14.x
+          - template: include-use-node-version.yml
           - template: include-publish-npm-package-steps.yml
             parameters:
               namespace: ${{ parameters.namespace }}
               artifactPath: scoped
+              devFeedName: ${{ parameters.devFeedName }}
               feedName: ${{ parameters.feedName }}
               customEndPoint: ${{ parameters.customEndPoint }}
               official: ${{ parameters.official }}
@@ -69,6 +70,7 @@ jobs:
               parameters:
                 namespace: false
                 artifactPath: non-scoped
+                devFeedName: ${{ parameters.devFeedName }}
                 feedName: ${{ parameters.feedName }}
                 official: ${{ parameters.official }}
                 customEndPoint: ${{ parameters.customEndPoint }}

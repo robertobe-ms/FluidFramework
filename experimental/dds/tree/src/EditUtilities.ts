@@ -4,7 +4,8 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { compareArrays, copyPropertyIfDefined, fail, Mutable } from './Common';
+import { compareArrays } from '@fluidframework/core-utils';
+import { copyPropertyIfDefined, fail, Mutable } from './Common';
 import { Definition, DetachedSequenceId, EditId, NodeId, StableNodeId, TraitLabel } from './Identifiers';
 import { NodeIdContext, NodeIdConverter } from './NodeIdUtilities';
 import {
@@ -264,7 +265,7 @@ export function deepCompareNodes(
 	return true;
 }
 
-/*
+/**
  * Returns true if two nodes have equivalent data and payloads, otherwise false.
  * Does not compare children
  * @param nodes - two or more nodes to compare
@@ -445,8 +446,8 @@ export function validateStableRange(
 		return { result: { kind: RangeValidationResultKind.BadPlace, place: end, placeFailure: validatedEnd.result } };
 	}
 
-	const startTraitLocation = validatedStart.referenceTrait || view.getTraitLocation(validatedStart.referenceSibling);
-	const endTraitLocation = validatedEnd.referenceTrait || view.getTraitLocation(validatedEnd.referenceSibling);
+	const startTraitLocation = validatedStart.referenceTrait ?? view.getTraitLocation(validatedStart.referenceSibling);
+	const endTraitLocation = validatedEnd.referenceTrait ?? view.getTraitLocation(validatedEnd.referenceSibling);
 	if (!compareTraits(startTraitLocation, endTraitLocation)) {
 		return { result: RangeValidationResultKind.PlacesInDifferentTraits };
 	}

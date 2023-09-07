@@ -2,7 +2,9 @@
  * Copyright (c) Microsoft Corporation and contributors. All rights reserved.
  * Licensed under the MIT License.
  */
-import { assert, assertNotUndefined, ReplaceRecursive } from '../Common';
+
+import { assert } from '@fluidframework/core-utils';
+import { assertNotUndefined, ReplaceRecursive } from '../Common';
 // These are re-exported from a persisted-types file.
 import type {
 	IdCreationRange,
@@ -173,11 +175,6 @@ export interface EditChunkContents_0_1_1 {
 	version: WriteFormat.v0_1_1;
 	edits: readonly EditWithoutId<CompressedChangeInternal<FinalNodeId>>[];
 }
-
-/**
- * Edits per edit chunk. This value is in persisted types because it requires consensus to change.
- */
-export const editsPerChunk = 100;
 
 /**
  * Compressed change format type.
@@ -422,9 +419,14 @@ export const StableRangeInternal = {
 	from: (start: StablePlaceInternal): { to: (end: StablePlaceInternal) => StableRangeInternal } => ({
 		to: (end: StablePlaceInternal): StableRangeInternal => {
 			if (start.referenceTrait && end.referenceTrait) {
-				const message = 'StableRange must be constructed with endpoints from the same trait';
-				assert(start.referenceTrait.parent === end.referenceTrait.parent, message);
-				assert(start.referenceTrait.label === end.referenceTrait.label, message);
+				assert(
+					start.referenceTrait.parent === end.referenceTrait.parent,
+					0x65e /* StableRange must be constructed with endpoints from the same trait */
+				);
+				assert(
+					start.referenceTrait.label === end.referenceTrait.label,
+					0x65f /* StableRange must be constructed with endpoints from the same trait */
+				);
 			}
 			return { start, end };
 		},

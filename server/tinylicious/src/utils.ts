@@ -3,12 +3,10 @@
  * Licensed under the MIT License.
  */
 
-// In this case we want @types/express-serve-static-core, not express-serve-static-core, and so disable the lint rule
-// eslint-disable-next-line import/no-unresolved
-import { Params } from "express-serve-static-core";
+import type { Params } from "express-serve-static-core";
 
 export function getParam(params: Params, key: string) {
-    return Array.isArray(params) ? undefined : params[key];
+	return Array.isArray(params) ? undefined : params[key];
 }
 
 /**
@@ -16,9 +14,11 @@ export function getParam(params: Params, key: string) {
  * @param value - The value to be converted to number.
  */
 export function queryParamToNumber(value: any): number {
-    if (typeof value !== "string") { return undefined; }
-    const parsedValue = parseInt(value, 10);
-    return isNaN(parsedValue) ? undefined : parsedValue;
+	if (typeof value !== "string") {
+		return undefined;
+	}
+	const parsedValue = parseInt(value, 10);
+	return isNaN(parsedValue) ? undefined : parsedValue;
 }
 
 /**
@@ -26,6 +26,8 @@ export function queryParamToNumber(value: any): number {
  * @param value - The value to be converted to number.
  */
 export function queryParamToString(value: any): string {
-    if (typeof value !== "string") { return undefined; }
-    return value;
+	if (typeof value !== "string") {
+		return undefined;
+	}
+	return value;
 }

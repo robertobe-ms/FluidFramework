@@ -6,20 +6,26 @@
 
 import { DriverError } from '@fluidframework/driver-definitions';
 import { IDriverErrorBase } from '@fluidframework/driver-definitions';
-import { IFluidResolvedUrl } from '@fluidframework/driver-definitions';
+import { IResolvedUrl } from '@fluidframework/driver-definitions';
 
 // @public (undocumented)
 export type CacheContentType = "snapshot" | "ops";
 
+// @public
+export function getKeyForCacheEntry(entry: ICacheEntry): string;
+
 // @public (undocumented)
 export interface HostStoragePolicy {
+    avoidPrefetchSnapshotCache?: boolean;
     cacheCreateNewSummary?: boolean;
     // (undocumented)
     concurrentOpsBatches?: number;
     concurrentSnapshotFetch?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     enableRedeemFallback?: boolean;
+    // @deprecated (undocumented)
     enableShareLinkWithCreate?: boolean;
+    enableSingleRequestForShareLinkWithCreate?: boolean;
     // @deprecated (undocumented)
     fetchBinarySnapshotFormat?: boolean;
     isolateSocketCache?: boolean;
@@ -55,25 +61,33 @@ export interface IEntry {
 // @public (undocumented)
 export interface IFileEntry {
     docId: string;
-    resolvedUrl: IFluidResolvedUrl;
+    resolvedUrl: IResolvedUrl;
 }
 
 // @public (undocumented)
 export type InstrumentedStorageTokenFetcher = (options: TokenFetchOptions, name: string, alwaysRecordTokenFetchTelemetry?: boolean) => Promise<string | null>;
 
 // @public
-export interface IOdspError extends Omit<IDriverErrorBase, "errorType"> {
+export interface IOdspError extends Omit<IDriverErrorBase, "errorType">, IOdspErrorAugmentations {
     // (undocumented)
     readonly errorType: OdspErrorType;
+}
+
+// @public (undocumented)
+export interface IOdspErrorAugmentations {
+    facetCodes?: string[];
+    redirectLocation?: string;
     serverEpoch?: string;
 }
 
 // @public (undocumented)
-export interface IOdspResolvedUrl extends IFluidResolvedUrl, IOdspUrlParts {
+export interface IOdspResolvedUrl extends IResolvedUrl, IOdspUrlParts {
     // (undocumented)
     codeHint?: {
         containerPackageName?: string;
     };
+    // (undocumented)
+    dataStorePath?: string;
     // (undocumented)
     endpoints: {
         snapshotStorageUrl: string;
@@ -126,6 +140,32 @@ export interface IPersistedCache {
     removeEntries(file: IFileEntry): Promise<void>;
 }
 
+// @public
+export interface IProvideSessionAwareDriverFactory {
+    // (undocumented)
+    readonly IRelaySessionAwareDriverFactory: IRelaySessionAwareDriverFactory;
+}
+
+// @public
+export interface IRelaySessionAwareDriverFactory extends IProvideSessionAwareDriverFactory {
+    // (undocumented)
+    getRelayServiceSessionInfo(resolvedUrl: IResolvedUrl): Promise<ISocketStorageDiscovery | undefined>;
+}
+
+// @public
+export interface ISharingLink extends ISharingLinkKind {
+    // (undocumented)
+    webUrl: string;
+}
+
+// @public
+export interface ISharingLinkKind {
+    // (undocumented)
+    role?: SharingLinkRole;
+    // (undocumented)
+    scope: SharingLinkScope;
+}
+
 // @public (undocumented)
 export interface ISnapshotOptions {
     // (undocumented)
@@ -141,26 +181,37 @@ export interface ISnapshotOptions {
 }
 
 // @public
+export interface ISocketStorageDiscovery {
+    // (undocumented)
+    deltaStorageUrl: string;
+    deltaStreamSocketUrl: string;
+    // (undocumented)
+    id: string;
+    refreshSessionDurationSeconds?: number;
+    // (undocumented)
+    runtimeTenantId?: string;
+    // (undocumented)
+    snapshotStorageUrl: string;
+    socketToken?: string;
+    // (undocumented)
+    tenantId: string;
+}
+
+// @public
 export const isTokenFromCache: (tokenResponse: string | TokenResponse | null) => boolean | undefined;
 
 // @public (undocumented)
-export type OdspError = DriverError | IOdspError;
+export type OdspError = IOdspError | (DriverError & IOdspErrorAugmentations);
 
-// @public (undocumented)
+// @public
 export enum OdspErrorType {
-    // (undocumented)
     cannotCatchUp = "cannotCatchUp",
-    // (undocumented)
     fetchTimeout = "fetchTimeout",
     // (undocumented)
     fetchTokenError = "fetchTokenError",
-    // (undocumented)
     fluidNotEnabled = "fluidNotEnabled",
     invalidFileNameError = "invalidFileNameError",
-    // (undocumented)
-    locationRedirection = "locationRedirection",
     outOfStorageError = "outOfStorageError",
-    // (undocumented)
     serviceReadOnly = "serviceReadOnly",
     snapshotTooBig = "snapshotTooBig"
 }
@@ -175,17 +226,38 @@ export interface OdspResourceTokenFetchOptions extends TokenFetchOptions {
 // @public
 export interface ShareLinkInfoType {
     createLink?: {
-        type?: ShareLinkTypes;
-        link?: string;
+        type?: ShareLinkTypes | ISharingLinkKind;
+        link?: string | ISharingLink;
         error?: any;
+        shareId?: string;
     };
     sharingLinkToRedeem?: string;
 }
 
-// @public
+// @public @deprecated (undocumented)
 export enum ShareLinkTypes {
     // (undocumented)
     csl = "csl"
+}
+
+// @public
+export enum SharingLinkRole {
+    // (undocumented)
+    edit = "edit",
+    // (undocumented)
+    view = "view"
+}
+
+// @public
+export enum SharingLinkScope {
+    // (undocumented)
+    anonymous = "anonymous",
+    // (undocumented)
+    default = "default",
+    // (undocumented)
+    organization = "organization",
+    // (undocumented)
+    users = "users"
 }
 
 // @public

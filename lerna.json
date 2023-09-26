@@ -1,8 +1,4 @@
 {
-  "packages": [
-    "examples/**",
-    "experimental/**",
-    "packages/**"
-  ],
-  "version": "1.4.0"
+    "npmClient": "pnpm",
+    "version": "1.4.0"
 }
